@@ -4,6 +4,24 @@ TigerOS is an open-source ESP-IDF 5.x firmware framework for ESP32-S3 IoT device
 
 > Status: early V1.x development foundation. The firmware is usable for lab and small-site deployments, but production users should review security defaults, hardware pin mappings, and OTA/cloud configuration before wide rollout.
 
+## Project Introduction / 项目介绍
+
+TigerOS is a free and open-source ESP32-S3 IoT gateway system. It helps makers, shops, small businesses, and hardware developers build reliable connected devices with WiFi setup, Web Console, OTA updates, BLE sensors, MQTT, Home Assistant discovery, and a cloud-ready device management foundation.
+
+TigerOS 是一个免费开源的 ESP32-S3 物联网网关系统。它适合创客、门店、小型企业和硬件开发者，用来快速构建可靠的联网设备，内置 WiFi 配网、Web 控制台、OTA 升级、BLE 传感器采集、MQTT、Home Assistant 自动发现，以及可扩展的云端设备管理基础。
+
+### More Languages
+
+- English: Open-source ESP32-S3 firmware and cloud foundation for IoT gateways, sensor hubs, and connected devices.
+- 简体中文: 面向 ESP32-S3 的开源物联网固件和云端基础，可用于网关、传感器中枢和智能设备。
+- Español: Firmware ESP32-S3 y base cloud de código abierto para gateways IoT, sensores y dispositivos conectados.
+- Français: Firmware ESP32-S3 open source et base cloud pour passerelles IoT, capteurs et appareils connectés.
+- Deutsch: Open-Source-ESP32-S3-Firmware und Cloud-Grundlage für IoT-Gateways, Sensor-Hubs und vernetzte Geräte.
+- Português: Firmware ESP32-S3 open source e base cloud para gateways IoT, sensores e dispositivos conectados.
+- 日本語: ESP32-S3 向けのオープンソース IoT ゲートウェイファームウェアとクラウド基盤です。
+- 한국어: ESP32-S3 기반 오픈소스 IoT 게이트웨이 펌웨어와 클라우드 기반입니다.
+- العربية: نظام مفتوح المصدر لبوابات إنترنت الأشياء المبنية على ESP32-S3 مع دعم الحساسات والتحديثات السحابية.
+
 ## Architecture
 
 ```text
