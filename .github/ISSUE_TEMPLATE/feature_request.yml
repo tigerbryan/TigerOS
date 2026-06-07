@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a new TigerOS feature, integration, device adapter, or documentation improvement.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Firmware
+        - BLE device adapter
+        - MQTT integration
+        - Home Assistant
+        - Cloud OTA
+        - Tiger Cloud
+        - Hardware/display/audio
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, API, UI, or protocol support you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+

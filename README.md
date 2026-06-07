@@ -139,6 +139,14 @@ TigerOS can scan and pair multi-brand BLE temperature and humidity sensors. V1.0
 
 Details are in [BLE Sensor Gateway](docs/BLE_SENSOR_GATEWAY.md).
 
+## Roadmap and Contributing
+
+- Project roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+
+Contributors are welcome. Good first areas include BLE parser test data, board profiles, documentation screenshots, translations, and Home Assistant examples.
+
 ## Security
 
 Default Web Console login is `admin` / `tigeros`. This is a development default. Change passwords and API tokens before using TigerOS on any untrusted network.

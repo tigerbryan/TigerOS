@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a reproducible TigerOS firmware, cloud, or Web Console problem.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve TigerOS. Please include enough detail for another maintainer to reproduce the issue.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Firmware
+        - Web Console
+        - BLE sensors
+        - MQTT
+        - OTA
+        - Tiger Cloud
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      description: Board, flash size, PSRAM, display/sensor model if relevant.
+      placeholder: ESP32-S3, 16MB flash, PSRAM, Freenove Media Kit
+  - type: input
+    id: version
+    attributes:
+      label: TigerOS version or commit
+      placeholder: v1.0.0-alpha or commit hash
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, and what happened?
+      placeholder: |
+        1. Flash firmware
+        2. Open Web Console
+        3. Start BLE scan
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste serial logs, Web Console diagnostics, screenshots, or Cloud logs.
+
