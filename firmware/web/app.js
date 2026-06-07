@@ -217,7 +217,7 @@ async function loadWebhook() {
   $("webhook-secret-header").value = data.secret_header || "x-ingest-secret";
   $("webhook-secret-value").value = "";
   $("webhook-secret-value").placeholder = data.secret_set ? "Secret saved; leave blank to keep it" : "Paste webhook secret";
-  $("webhook-interval").value = data.interval_seconds || 60;
+  $("webhook-interval").value = data.interval_seconds || 300;
   $("webhook-status").textContent = data.enabled ? t("enabled") : "Disabled";
   setStatus("webhook-form-status", data.secret_set ? t("webhookSecretSaved") : "");
 }
@@ -1578,7 +1578,7 @@ function webhookPayload() {
     url: $("webhook-url").value.trim(),
     secret_header: $("webhook-secret-header").value.trim() || "x-ingest-secret",
     secret_value: $("webhook-secret-value").value,
-    interval_seconds: Number($("webhook-interval").value || 60),
+    interval_seconds: Number($("webhook-interval").value || 300),
   };
 }
 

@@ -88,7 +88,7 @@ struct WebhookConfig {
     std::string url;
     std::string secret_header = "x-ingest-secret";
     std::string secret_value;
-    int interval_seconds = 60;
+    int interval_seconds = 300;
 };
 
 class NvsStore {
