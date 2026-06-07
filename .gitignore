@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+.AppleDouble
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ESP-IDF generated output
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig.old
+
+# Node / cloud generated output
+cloud/node_modules/
+cloud/dist/
+
+# Local environment and logs
+.env
+.env.*
+cloud/.env
+cloud/.env.*
+!cloud/.env.example
+*.log
+*.tmp
+
+# Python cache
+__pycache__/
+*.py[cod]

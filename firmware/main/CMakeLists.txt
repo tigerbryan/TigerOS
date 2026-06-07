@@ -1,0 +1,63 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+        "audio_manager.cpp"
+        "auth_manager.cpp"
+        "board_support.cpp"
+        "ble_manager.cpp"
+        "ble_sensor_gateway.cpp"
+        "ble_sensor_parser.cpp"
+        "ble_sensor_registry.cpp"
+        "device_registry.cpp"
+        "adapters/ble_sensor_adapter.cpp"
+        "adapters/mqtt_device_adapter.cpp"
+        "adapters/http_device_adapter.cpp"
+        "adapters/tasmota_adapter.cpp"
+        "adapters/esphome_adapter.cpp"
+        "adapters/shelly_adapter.cpp"
+        "adapters/generic_adapter.cpp"
+        "parsers/inkbird_parser.cpp"
+        "parsers/atc_parser.cpp"
+        "parsers/xiaomi_parser.cpp"
+        "parsers/bthome_parser.cpp"
+        "parsers/unknown_ble_parser.cpp"
+        "mqtt_manager.cpp"
+        "wifi_manager.cpp"
+        "web_server.cpp"
+        "api_routes.cpp"
+        "ota_manager.cpp"
+        "nvs_store.cpp"
+        "device_manager.cpp"
+        "tiger_log.cpp"
+        "tft_display.cpp"
+        "cloud_client.cpp"
+    INCLUDE_DIRS "."
+    REQUIRES
+        mqtt
+    PRIV_REQUIRES
+        app_update
+        esp_event
+        esp_driver_gpio
+        esp_driver_i2s
+        esp_http_client
+        esp_http_server
+        esp_lcd
+        esp_netif
+        esp_timer
+        esp_wifi
+        esp_driver_spi
+        json
+        mbedtls
+        nvs_flash
+        spi_flash
+        bt
+    EMBED_FILES
+        "../web/index.html"
+        "../web/app.js"
+        "../web/style.css"
+        "../web/i18n/en.js"
+        "../web/i18n/zh-CN.js"
+)
+
+set_property(TARGET ${COMPONENT_LIB} PROPERTY CXX_STANDARD 17)
+set_property(TARGET ${COMPONENT_LIB} PROPERTY CXX_STANDARD_REQUIRED ON)

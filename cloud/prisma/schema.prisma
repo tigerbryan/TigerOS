@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FirmwareChannel {
+  stable
+  beta
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  devices      Device[]
+}
+
+model Device {
+  id              String          @id @default(cuid())
+  deviceId        String          @unique
+  name            String?
+  hardwareModel   String
+  firmwareVersion String?
+  channel         FirmwareChannel @default(stable)
+  tokenHash       String
+  lastSeen        DateTime?
+  online          Boolean         @default(false)
+  ipAddress       String?
+  rssi            Int?
+  freeHeap        Int?
+  uptime          Int?
+  ownerId         String
+  owner           User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bleSensors      BleSensor[]
+  childDevices    ChildDevice[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model ChildDevice {
+  id           String             @id @default(cuid())
+  gatewayId    String
+  gateway      Device             @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  externalId   String
+  name         String
+  type         String             @default("unknown")
+  brand        String             @default("generic")
+  model        String             @default("unknown")
+  protocol     String             @default("unknown")
+  address      String?
+  location     String?
+  online       Boolean            @default(false)
+  lastSeen     DateTime?
+  raw          Json?
+  capabilities DeviceCapability[]
+  states       DeviceState[]
+  logs         DeviceLog[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([gatewayId, externalId])
+  @@index([gatewayId, lastSeen])
+}
+
+model DeviceCapability {
+  id       String      @id @default(cuid())
+  deviceId String
+  device   ChildDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  name     String
+
+  @@unique([deviceId, name])
+}
+
+model DeviceState {
+  id        String      @id @default(cuid())
+  deviceId  String
+  device    ChildDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  state     Json
+  createdAt DateTime    @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+model DeviceLog {
+  id        String      @id @default(cuid())
+  deviceId  String
+  device    ChildDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  level     String      @default("info")
+  message   String
+  createdAt DateTime    @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+model BleSensor {
+  id               String   @id @default(cuid())
+  gatewayId        String
+  gateway          Device   @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  macAddress       String
+  name             String?
+  brand            String   @default("unknown")
+  model            String   @default("unknown")
+  protocol         String   @default("unknown")
+  location         String?
+  sensorType       String   @default("unknown_ble_sensor")
+  lastSeen         DateTime?
+  rssi             Int?
+  temperatureC     Float?
+  humidityPercent  Float?
+  batteryPercent   Int?
+  rawAdvertisement String?
+  telemetry        BleSensorTelemetry[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([gatewayId, macAddress])
+  @@index([gatewayId, lastSeen])
+}
+
+model BleSensorTelemetry {
+  id              String    @id @default(cuid())
+  sensorId        String
+  sensor          BleSensor @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  temperatureC    Float?
+  humidityPercent Float?
+  batteryPercent  Int?
+  rssi            Int?
+  createdAt       DateTime  @default(now())
+
+  @@index([sensorId, createdAt])
+}
+
+model FirmwareRelease {
+  id            String          @id @default(cuid())
+  version       String
+  channel       FirmwareChannel
+  hardwareModel String
+  firmwareUrl   String
+  sha256        String
+  releaseNotes  String?
+  forceUpdate   Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+
+  @@unique([version, channel, hardwareModel])
+  @@index([channel, hardwareModel, createdAt])
+}

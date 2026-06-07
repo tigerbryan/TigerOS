@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TigerOS Console</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="header">
+        <div>
+          <p class="eyebrow">ESP32-S3 IoT Framework</p>
+          <h1>TigerOS Console</h1>
+        </div>
+        <div class="header-actions">
+          <label class="language-select">
+            <span data-i18n="language">Language</span>
+            <select id="language-select">
+              <option value="en">English</option>
+              <option value="zh-CN">简体中文</option>
+            </select>
+          </label>
+          <span id="status-pill" class="pill" data-i18n="loading">Loading</span>
+          <button id="logout-button" class="secondary small" type="button" hidden data-i18n="logout">Logout</button>
+        </div>
+      </section>
+
+      <section id="login-view" class="auth-layout">
+        <form id="login-form" class="panel auth-panel">
+          <h2 data-i18n="login">Login</h2>
+          <label>
+            <span data-i18n="username">Username</span>
+            <input id="login-username" autocomplete="username" value="admin" required />
+          </label>
+          <label>
+            <span data-i18n="password">Password</span>
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" data-i18n="login">Login</button>
+          <p id="login-status" class="status-text"></p>
+        </form>
+      </section>
+
+      <section id="onboarding-view" class="onboarding-layout" hidden>
+        <form id="onboarding-wifi-form" class="panel onboarding-panel">
+          <p class="section-kicker" data-i18n="firstRunSetup">First Run Setup</p>
+          <h2 data-i18n="connectTigerosToWifi">Connect TigerOS to WiFi</h2>
+          <p class="status-text" data-i18n="onboardingIntro">
+            Select your store WiFi network. TigerOS will keep this setup page open and show the LAN IP after it connects.
+          </p>
+          <div class="setup-summary">
+            <div><span data-i18n="setupAp">Setup AP</span><strong id="onboarding-ap">TigerOS-Setup</strong></div>
+            <div><span data-i18n="currentAddress">Current address</span><strong>192.168.4.1</strong></div>
+          </div>
+          <div class="row">
+            <label class="grow">
+              <span data-i18n="networks">Networks</span>
+              <select id="onboarding-wifi-networks">
+                <option value="" data-i18n="scanForNetworks">Scan for networks</option>
+              </select>
+            </label>
+            <button id="onboarding-scan-button" class="secondary" type="button" data-i18n="scan">Scan</button>
+          </div>
+          <label>
+            <span data-i18n="ssid">SSID</span>
+            <input id="onboarding-ssid" name="ssid" maxlength="32" autocomplete="off" required />
+          </label>
+          <label>
+            <span data-i18n="password">Password</span>
+            <input id="onboarding-password" name="password" maxlength="64" type="password" autocomplete="current-password" />
+          </label>
+          <button id="onboarding-connect-button" type="submit" data-i18n="connectWifi">Connect WiFi</button>
+          <p id="onboarding-status" class="status-text"></p>
+          <section id="onboarding-connected" class="connected-box" hidden>
+            <p class="section-kicker" data-i18n="wifiConnected">WiFi Connected</p>
+            <h2 data-i18n="openLanConsole">Open TigerOS on your LAN</h2>
+            <p class="status-text" data-i18n="onboardingConnectedHint">
+              Switch your phone or computer back to the same WiFi network, then open this address.
+            </p>
+            <a id="onboarding-lan-link" class="big-link" href="#">http://-</a>
+          </section>
+        </form>
+      </section>
+
+      <section id="dashboard-view" hidden>
+        <section class="overview">
+          <div><span data-i18n="deviceId">Device ID</span><strong id="device-id">-</strong></div>
+          <div><span data-i18n="firmware">Firmware</span><strong id="firmware-version">-</strong></div>
+          <div><span data-i18n="wifi">WiFi</span><strong id="wifi-status">-</strong></div>
+          <div><span data-i18n="ipAddress">IP Address</span><strong id="ip-address">-</strong></div>
+          <div><span data-i18n="uptime">Uptime</span><strong id="uptime">-</strong></div>
+          <div><span data-i18n="freeHeap">Free Heap</span><strong id="free-heap">-</strong></div>
+        </section>
+
+        <nav class="tabs" aria-label="Console sections">
+          <button class="tab-button active" type="button" data-tab="devices" data-i18n="devices">Devices</button>
+          <button class="tab-button" type="button" data-tab="data" data-i18n="data">Data</button>
+          <button class="tab-button" type="button" data-tab="hardware" data-i18n="hardware">Hardware</button>
+          <button class="tab-button" type="button" data-tab="diagnostics" data-i18n="diagnostics">Diagnostics</button>
+          <button class="tab-button" type="button" data-tab="wifi" data-i18n="wifi">WiFi</button>
+          <button class="tab-button" type="button" data-tab="updates" data-i18n="updates">Updates</button>
+          <button class="tab-button" type="button" data-tab="integrations" data-i18n="integrations">Integrations</button>
+          <button class="tab-button" type="button" data-tab="system" data-i18n="system">System</button>
+        </nav>
+
+        <section class="tab-panel active" data-tab-panel="devices">
+          <section class="panel wide-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker" data-i18n="gatewayDevices">Gateway Devices</p>
+                <h2 data-i18n="devices">Devices</h2>
+              </div>
+              <div class="header-actions">
+                <button id="devices-scan-ble-button" class="secondary small" type="button" data-i18n="scanBle">Scan BLE</button>
+                <button id="devices-refresh-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+              </div>
+            </div>
+            <div class="sensor-grid">
+              <section>
+                <h3 data-i18n="pairedDevices">Watched Devices</h3>
+                <div class="device-counts">
+                  <span><b id="device-count-paired">0</b> <span data-i18n="pairedDevices">Watched Devices</span></span>
+                </div>
+                <div id="devices-list" class="paired-device-grid" data-i18n="noPairedDevices">No watched devices.</div>
+              </section>
+              <section>
+                <h3 data-i18n="addByIp">Add by IP</h3>
+                <div class="inline-form">
+                  <input id="http-device-ip" autocomplete="off" placeholder="192.168.1.50" />
+                  <button id="add-http-device-button" class="secondary small" type="button" data-i18n="addByIp">Add by IP</button>
+                </div>
+              </section>
+            </div>
+
+            <section class="discovered-section">
+              <div class="sticky-subheader">
+                <div>
+                  <h3 data-i18n="discoveredDevices">Discovered Devices</h3>
+                  <div class="device-counts">
+                    <span><span data-i18n="discovered">Discovered</span>: <b id="device-count-discovered">0</b></span>
+                    <span><span data-i18n="known">Known</span>: <b id="device-count-known">0</b></span>
+                    <span><span data-i18n="unknown">Unknown</span>: <b id="device-count-unknown">0</b></span>
+                  </div>
+                </div>
+              </div>
+              <div class="device-toolbar">
+                <input id="device-search" autocomplete="off" data-i18n-placeholder="searchDevices" placeholder="Search devices" />
+                <select id="device-filter">
+                  <option value="all" data-i18n="all">All</option>
+                  <option value="known" data-i18n="knownSensors">Known sensors</option>
+                  <option value="unknown" data-i18n="unknownBle">Unknown BLE</option>
+                  <option value="strong" data-i18n="strongSignalOnly">Strong signal only</option>
+                  <option value="recent" data-i18n="recentlySeen">Recently seen</option>
+                </select>
+                <select id="device-sort" aria-label="Sort by">
+                  <option value="rssi" data-i18n="rssiStrongest">RSSI strongest first</option>
+                  <option value="last_seen" data-i18n="lastSeenNewest">Last seen newest first</option>
+                  <option value="brand" data-i18n="brandModel">Brand/model</option>
+                </select>
+                <label class="check-row toolbar-check">
+                  <input id="hide-unknown-devices" type="checkbox" />
+                  <span data-i18n="hideUnknownDevices">Hide unknown devices</span>
+                </label>
+                <label class="check-row toolbar-check">
+                  <input id="only-new-devices" type="checkbox" />
+                  <span data-i18n="onlyShowNewDevices">Only show new devices</span>
+                </label>
+              </div>
+              <div class="discovered-table">
+                <div class="discovered-head">
+                  <span data-i18n="signal">Signal</span>
+                  <span data-i18n="brandModel">Brand/model</span>
+                  <span data-i18n="bleName">BLE Name</span>
+                  <span>MAC</span>
+                  <span data-i18n="protocol">Protocol</span>
+                  <span data-i18n="rssi">RSSI</span>
+                  <span data-i18n="parseStatus">Parse Status</span>
+                  <span data-i18n="state">State</span>
+                  <span></span>
+                </div>
+                <div id="devices-discovered" class="discovered-body" data-i18n="noDiscoveredDevices">No discovered devices.</div>
+              </div>
+              <div class="pagination-row">
+                <span id="device-page-summary" class="status-text"></span>
+                <button id="devices-show-more-button" class="secondary small" type="button" data-i18n="showMore">Show more</button>
+              </div>
+            </section>
+          </section>
+
+          <section class="panel wide-panel gatt-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker" data-i18n="bleDeviceBackend">BLE Device Backend</p>
+                <h2 data-i18n="gattDiagnostics">GATT Diagnostics</h2>
+              </div>
+              <div class="header-actions">
+                <button id="gatt-save-snapshot-button" class="secondary small" type="button" data-i18n="saveSnapshot">Save Snapshot</button>
+                <button id="gatt-copy-button" class="secondary small" type="button" data-i18n="copy">Copy</button>
+                <button id="gatt-refresh-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+              </div>
+            </div>
+            <p id="gatt-summary" class="status-text" data-i18n="noGattInspection">No GATT inspection yet.</p>
+            <div class="gatt-layout">
+              <div class="table-shell compact-table">
+                <div class="table-heading">
+                  <h3 data-i18n="gattCharacteristics">Characteristics</h3>
+                  <span id="gatt-characteristic-count" class="status-text">0</span>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="service">Service</th>
+                      <th data-i18n="characteristic">Characteristic</th>
+                      <th data-i18n="properties">Properties</th>
+                      <th data-i18n="readValue">Read Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="gatt-characteristics-table">
+                    <tr><td colspan="4" data-i18n="noGattInspection">No GATT inspection yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="gatt-snapshot-box">
+                <h3 data-i18n="gattSnapshots">Snapshots</h3>
+                <p class="status-text" data-i18n="gattSnapshotHint">Save one snapshot, change the device setting in the phone app, then inspect again and compare changed hex values.</p>
+                <div id="gatt-snapshots" class="gatt-snapshots"></div>
+                <pre id="gatt-diff-output" class="gatt-diff-output">-</pre>
+              </div>
+            </div>
+          </section>
+
+          <details class="panel wide-panel compact-details">
+            <summary>
+              <span data-i18n="bleSensors">BLE Sensors</span>
+              <span id="ble-sensor-scan-state" class="status-text" data-i18n="idle">Idle</span>
+            </summary>
+            <div class="section-header">
+              <div class="metrics mini-metrics">
+                <div><span>Discovered</span><strong id="ble-sensor-discovered-count">0</strong></div>
+                <div><span>Watched</span><strong id="ble-sensor-paired-count">0</strong></div>
+                <div><span data-i18n="scanWindow">Scan Window</span><strong>45s / 60s</strong></div>
+              </div>
+              <div class="header-actions">
+                <button id="ble-sensor-scan-button" class="secondary small" type="button" data-i18n="scanDevices">Scan Devices</button>
+                <button id="ble-sensor-stop-button" class="secondary small" type="button" data-i18n="stop">Stop</button>
+              </div>
+            </div>
+            <div class="sensor-grid">
+              <section>
+                <h3 data-i18n="discoveredSensors">Discovered Sensors</h3>
+                <div id="ble-sensor-discovered" class="sensor-list" data-i18n="noSensors">No sensors yet.</div>
+              </section>
+              <section>
+                <h3 data-i18n="pairedSensors">Watched Sensors</h3>
+                <div id="ble-sensor-paired" class="sensor-list" data-i18n="noPairedSensors">No watched sensors.</div>
+              </section>
+            </div>
+          </details>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="data" hidden>
+          <section class="panel wide-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker" data-i18n="gatewayData">Gateway Data</p>
+                <h2 data-i18n="deviceData">Device Data</h2>
+              </div>
+              <div class="header-actions">
+                <button id="device-data-scan-button" class="secondary small" type="button" data-i18n="collectBleData">Collect BLE</button>
+                <button id="device-data-stop-button" class="secondary small" type="button" data-i18n="stop">Stop</button>
+                <button id="device-data-clear-raw-button" class="secondary small" type="button" data-i18n="clearRawPackets">Clear Raw</button>
+                <button id="device-data-refresh-button" class="secondary small" type="button" data-i18n="refreshData">Refresh Data</button>
+              </div>
+            </div>
+            <div class="metrics mini-metrics">
+              <div><span data-i18n="onlineDevices">Online Devices</span><strong id="data-count-online">0</strong></div>
+              <div><span data-i18n="readableDevices">Readable Devices</span><strong id="data-count-readable">0</strong></div>
+              <div><span data-i18n="rawOnlyDevices">Raw-only Devices</span><strong id="data-count-raw">0</strong></div>
+              <div><span data-i18n="rawPackets">Raw Packets</span><strong id="data-count-packets">0</strong></div>
+              <div><span data-i18n="lastPacket">Last Packet</span><strong id="data-last-packet">-</strong></div>
+            </div>
+            <p class="status-text" data-i18n="dataSourceHint">Data comes from BLE advertisements. No persistent Bluetooth connection is required.</p>
+            <div id="device-data-list" class="device-data-grid" data-i18n="noDeviceData">No device data yet.</div>
+            <div class="table-shell compact-table">
+              <div class="table-heading">
+                <h3 data-i18n="rawBlePackets">Raw BLE Packets</h3>
+                <span id="ble-raw-status" class="status-text">-</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th data-i18n="lastSeen">Last seen</th>
+                    <th>MAC</th>
+                    <th data-i18n="bleName">BLE Name</th>
+                    <th data-i18n="rssi">RSSI</th>
+                    <th data-i18n="protocol">Protocol</th>
+                    <th data-i18n="parseStatus">Parse</th>
+                    <th data-i18n="latestValue">Value</th>
+                    <th data-i18n="serviceData">Service Data</th>
+                  </tr>
+                </thead>
+                <tbody id="ble-raw-packet-table">
+                  <tr><td colspan="8" data-i18n="noBlePackets">No BLE packets yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <details class="diagnostics-box" open>
+              <summary>
+                <span data-i18n="bleDiagnostics">BLE Diagnostics</span>
+                <button id="device-data-logs-refresh-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+              </summary>
+              <pre id="device-data-diagnostics">No BLE diagnostics yet.</pre>
+            </details>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="hardware" hidden>
+          <section class="panel wide-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker" data-i18n="boardHardware">Board Hardware</p>
+                <h2 data-i18n="hardware">Hardware</h2>
+              </div>
+              <div class="header-actions">
+                <button id="hardware-refresh-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+              </div>
+            </div>
+            <div class="metrics mini-metrics">
+              <div><span data-i18n="boardProfile">Board Profile</span><strong id="hardware-profile">-</strong></div>
+              <div><span data-i18n="display">Display</span><strong id="hardware-display">-</strong></div>
+              <div><span data-i18n="audio">Audio</span><strong id="hardware-audio">-</strong></div>
+            </div>
+            <div class="hardware-grid">
+              <form id="display-form" class="hardware-card">
+                <div>
+                  <h3 data-i18n="display">Display</h3>
+                  <p class="status-text" id="display-meta">-</p>
+                </div>
+                <label class="check-row">
+                  <input id="display-enabled" type="checkbox" />
+                  <span data-i18n="enableDisplaySurface">Enable display surface</span>
+                </label>
+                <label class="check-row">
+                  <input id="display-backlight" type="checkbox" />
+                  <span data-i18n="backlight">Backlight</span>
+                </label>
+                <button type="submit" data-i18n="applyDisplay">Apply Display</button>
+              </form>
+              <section class="hardware-card">
+                <div>
+                  <h3 data-i18n="speaker">Speaker</h3>
+                  <p class="status-text" id="audio-meta">-</p>
+                </div>
+                <button id="beep-test-button" class="secondary" type="button" data-i18n="testBeep">Test Beep</button>
+              </section>
+              <section class="hardware-card">
+                <div>
+                  <h3 data-i18n="camera">Camera</h3>
+                  <p class="status-text" id="camera-meta">-</p>
+                </div>
+                <span class="pill compact-pill" data-i18n="driverPending">Driver pending</span>
+              </section>
+              <section class="hardware-card">
+                <div>
+                  <h3 data-i18n="microphone">Microphone</h3>
+                  <p class="status-text" id="microphone-meta">-</p>
+                </div>
+                <span class="pill compact-pill" data-i18n="driverPending">Driver pending</span>
+              </section>
+            </div>
+            <p id="hardware-note" class="status-text"></p>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="wifi" hidden>
+          <form id="wifi-form" class="panel">
+            <h2 data-i18n="wifiSettings">WiFi Settings</h2>
+            <div class="row">
+              <label class="grow">
+                <span data-i18n="networks">Networks</span>
+                <select id="wifi-networks">
+                  <option value="">Scan for networks</option>
+                </select>
+              </label>
+              <button id="scan-button" class="secondary" type="button" data-i18n="scan">Scan</button>
+            </div>
+            <label>
+              <span data-i18n="ssid">SSID</span>
+              <input id="ssid" name="ssid" maxlength="32" autocomplete="off" required />
+            </label>
+            <label>
+              <span data-i18n="password">Password</span>
+              <input id="password" name="password" maxlength="64" type="password" autocomplete="current-password" />
+            </label>
+            <button type="submit" data-i18n="saveWifi">Save WiFi</button>
+          </form>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="diagnostics" hidden>
+          <section class="panel wide-panel">
+            <div class="section-header">
+              <div>
+                <p class="section-kicker" data-i18n="systemHealth">System Health</p>
+                <h2 data-i18n="diagnostics">Diagnostics</h2>
+              </div>
+              <div class="header-actions">
+                <select id="diagnostics-filter" aria-label="Diagnostics filter">
+                  <option value="all" data-i18n="all">All</option>
+                  <option value="ble">BLE</option>
+                  <option value="wifi">WiFi</option>
+                  <option value="mqtt">MQTT</option>
+                  <option value="ota">OTA</option>
+                  <option value="api">API</option>
+                  <option value="auth">Auth</option>
+                </select>
+                <button id="clear-diagnostics-button" class="secondary small" type="button" data-i18n="clearLogs">Clear</button>
+                <button id="copy-diagnostics-button" class="secondary small" type="button" data-i18n="copyLogs">Copy</button>
+                <button id="refresh-diagnostics-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+              </div>
+            </div>
+            <div class="metrics mini-metrics">
+              <div><span data-i18n="wifi">WiFi</span><strong id="diag-wifi">-</strong></div>
+              <div><span>MQTT</span><strong id="diag-mqtt">-</strong></div>
+              <div><span>BLE Scan</span><strong id="diag-ble-scan">-</strong></div>
+            </div>
+            <div class="metrics mini-metrics">
+              <div><span data-i18n="freeHeap">Free Heap</span><strong id="diag-heap">-</strong></div>
+              <div><span data-i18n="uptime">Uptime</span><strong id="diag-uptime">-</strong></div>
+              <div><span data-i18n="rawPackets">Raw Packets</span><strong id="diag-raw-packets">0</strong></div>
+            </div>
+            <section class="diagnostics-box">
+              <div class="diagnostics-title" data-i18n="systemLogs">System Logs</div>
+              <pre id="diagnostics-output">Loading...</pre>
+            </section>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="updates" hidden>
+          <section class="panel">
+            <h2 data-i18n="firmwareUpdate">Firmware Update</h2>
+            <div class="metrics mini-metrics">
+              <div><span data-i18n="firmware">Firmware</span><strong id="update-firmware-version">-</strong></div>
+              <div><span data-i18n="buildTime">Build Time</span><strong id="build-time">-</strong></div>
+              <div><span>Mode</span><strong>Local OTA</strong></div>
+            </div>
+            <label id="ota-drop-zone" class="drop-zone">
+              <span class="drop-title" data-i18n="dropFirmware">Drop firmware here</span>
+              <span id="ota-file-name" class="drop-subtitle" data-i18n="chooseFirmware">or click to choose a .bin file</span>
+              <input id="ota-file" type="file" accept=".bin,application/octet-stream" />
+            </label>
+            <button id="ota-button" type="button" data-i18n="uploadOta">Upload OTA Firmware</button>
+            <progress id="ota-progress" value="0" max="100"></progress>
+            <p id="ota-status" class="status-text">Choose a firmware binary to upload.</p>
+          </section>
+
+          <form id="cloud-ota-form" class="panel">
+            <h2 data-i18n="cloudOta">Cloud OTA</h2>
+            <label class="check-row">
+              <input id="cloud-ota-enabled" type="checkbox" />
+              Enable Cloud OTA
+            </label>
+            <label class="check-row">
+              <input id="cloud-ota-auto-update" type="checkbox" />
+              Auto install forced/allowed updates
+            </label>
+            <label>
+              OTA Server URL
+              <input id="cloud-ota-url" autocomplete="off" placeholder="https://example.com/api/ota/check" />
+            </label>
+            <label>
+              Channel
+              <select id="cloud-ota-channel">
+                <option value="stable">stable</option>
+                <option value="beta">beta</option>
+              </select>
+            </label>
+            <label>
+              Device Token
+              <input id="cloud-device-token" type="password" autocomplete="new-password" placeholder="Leave blank to keep current token" />
+            </label>
+            <div class="metrics mini-metrics">
+              <div><span>Latest</span><strong id="cloud-ota-latest">-</strong></div>
+              <div><span>Progress</span><strong id="cloud-ota-progress-text">-</strong></div>
+              <div><span>Force</span><strong id="cloud-ota-force">-</strong></div>
+            </div>
+            <label>
+              Release Notes
+              <textarea id="cloud-ota-notes" readonly></textarea>
+            </label>
+            <div class="row">
+              <button class="grow" type="submit" data-i18n="saveOta">Save OTA</button>
+              <button id="cloud-ota-check-button" class="secondary" type="button" data-i18n="checkUpdate">Check Update</button>
+              <button id="cloud-ota-update-button" class="secondary" type="button" data-i18n="updateNow">Update Now</button>
+            </div>
+            <p id="cloud-ota-status" class="status-text"></p>
+          </form>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="integrations" hidden>
+          <form id="webhook-form" class="panel">
+            <div class="section-header">
+              <h2 data-i18n="httpWebhook">HTTP Webhook</h2>
+              <span class="pill compact-pill" id="webhook-status">-</span>
+            </div>
+            <label class="check-row">
+              <input id="webhook-enabled" type="checkbox" />
+              <span data-i18n="enableWebhook">Enable Webhook</span>
+            </label>
+            <label>
+              <span data-i18n="webhookUrl">Webhook URL</span>
+              <input id="webhook-url" autocomplete="off" placeholder="https://example.com/api/public/hooks/temperature" />
+            </label>
+            <label>
+              <span data-i18n="secretHeader">Secret Header</span>
+              <input id="webhook-secret-header" autocomplete="off" placeholder="x-ingest-secret" />
+            </label>
+            <label>
+              <span data-i18n="secretValue">Secret Value</span>
+              <input id="webhook-secret-value" type="password" autocomplete="new-password" placeholder="Leave blank to keep current secret" />
+            </label>
+            <label>
+              <span data-i18n="sendInterval">Send Interval</span>
+              <input id="webhook-interval" type="number" min="10" max="3600" step="1" />
+            </label>
+            <div class="row form-actions-sticky">
+              <button class="grow" type="submit" data-i18n="saveWebhook">Save Webhook</button>
+              <button id="webhook-test-button" class="secondary" type="button" data-i18n="testWebhook">Test</button>
+            </div>
+            <p id="webhook-form-status" class="status-text"></p>
+          </form>
+
+          <section class="panel logs">
+            <div class="section-header">
+              <div>
+                <h2 data-i18n="webhookDeliveryLogs">Webhook Delivery Logs</h2>
+                <p id="webhook-log-summary" class="status-text">-</p>
+              </div>
+              <button id="webhook-logs-refresh-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+            </div>
+            <pre id="webhook-logs">No webhook logs yet.</pre>
+          </section>
+
+          <form id="mqtt-form" class="panel">
+            <div class="section-header">
+              <h2 data-i18n="mqttSettings">MQTT Settings</h2>
+              <span class="pill compact-pill" id="mqtt-status">-</span>
+            </div>
+            <label class="check-row">
+              <input id="mqtt-enabled" type="checkbox" />
+              Enable MQTT
+            </label>
+            <label>
+              Host
+              <input id="mqtt-host" autocomplete="off" placeholder="broker.local" />
+            </label>
+            <div class="row">
+              <label class="grow">
+                Port
+                <input id="mqtt-port" type="number" min="1" max="65535" />
+              </label>
+              <label class="check-row inline-check">
+                <input id="mqtt-use-tls" type="checkbox" />
+                Use TLS
+              </label>
+            </div>
+            <label>
+              Username
+              <input id="mqtt-username" autocomplete="off" />
+            </label>
+            <label>
+              Password
+              <input id="mqtt-password" type="password" autocomplete="new-password" placeholder="Leave blank to keep current password" />
+            </label>
+            <label>
+              Client ID
+              <input id="mqtt-client-id" autocomplete="off" />
+            </label>
+            <label class="check-row">
+              <input id="ha-discovery-enabled" type="checkbox" />
+              Home Assistant Discovery
+            </label>
+            <label>
+              Discovery Prefix
+              <input id="ha-discovery-prefix" autocomplete="off" placeholder="homeassistant" />
+            </label>
+            <div class="row">
+              <button class="grow" type="submit">Save MQTT</button>
+              <button id="mqtt-test-button" class="secondary" type="button">Test</button>
+            </div>
+            <p id="mqtt-form-status" class="status-text"></p>
+          </form>
+
+          <form id="ble-form" class="panel">
+            <div class="section-header">
+              <h2 data-i18n="bleProvisioning">BLE Provisioning</h2>
+              <span class="pill compact-pill" id="ble-status">-</span>
+            </div>
+            <label class="check-row">
+              <input id="ble-enabled" type="checkbox" />
+              Enable BLE
+            </label>
+            <div class="metrics mini-metrics">
+              <div><span>Device Name</span><strong id="ble-device-name">-</strong></div>
+              <div><span>Provisioning</span><strong id="ble-provisioning-state">-</strong></div>
+              <div><span>PoP</span><strong id="ble-pop-required">-</strong></div>
+            </div>
+            <label>
+              Pairing PIN
+              <input id="ble-pairing-pin" inputmode="numeric" maxlength="6" autocomplete="off" />
+            </label>
+            <label>
+              Proof-of-possession token
+              <input id="ble-pop-token" autocomplete="off" placeholder="Optional; blank disables PoP" />
+            </label>
+            <button type="submit">Save BLE</button>
+            <p id="ble-form-status" class="status-text"></p>
+          </form>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="system" hidden>
+          <section class="panel">
+            <h2 data-i18n="system">System</h2>
+            <div class="danger-zone">
+              <button id="reboot-button" type="button" data-i18n="reboot">Reboot</button>
+              <button id="factory-reset-button" class="danger" type="button" data-i18n="factoryReset">Factory Reset</button>
+            </div>
+          </section>
+
+          <section class="panel logs">
+            <div class="section-header">
+              <h2 data-i18n="logs">Logs</h2>
+              <button id="refresh-logs-button" class="secondary small" type="button" data-i18n="refresh">Refresh</button>
+            </div>
+            <pre id="logs">Loading...</pre>
+          </section>
+        </section>
+      </section>
+    </main>
+    <aside id="device-drawer" class="drawer" hidden>
+      <div class="drawer-backdrop" data-drawer-close></div>
+      <section class="drawer-panel">
+        <div class="section-header">
+          <div>
+            <p class="section-kicker" data-i18n="rawData">Raw data</p>
+            <h2 id="drawer-device-name">-</h2>
+          </div>
+          <button class="secondary small" type="button" data-drawer-close data-i18n="close">Close</button>
+        </div>
+        <div class="drawer-meta" id="drawer-device-meta"></div>
+        <div class="drawer-actions">
+          <button id="drawer-add-device" type="button" data-i18n="addDevice">Add device</button>
+        </div>
+        <label>
+          <span data-i18n="decodedResult">Decoded parser result</span>
+          <textarea id="drawer-decoded" readonly></textarea>
+        </label>
+        <label>
+          <span data-i18n="rawData">Raw data</span>
+          <textarea id="drawer-raw" readonly></textarea>
+        </label>
+      </section>
+    </aside>
+    <div id="toast" class="toast" hidden></div>
+    <script src="/i18n/en.js"></script>
+    <script src="/i18n/zh-CN.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

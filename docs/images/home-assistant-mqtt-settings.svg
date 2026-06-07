@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="TigerOS MQTT settings example">
+  <rect width="960" height="540" fill="#0f1518"/>
+  <rect x="40" y="32" width="880" height="476" rx="8" fill="#192127" stroke="#31414c"/>
+  <text x="72" y="82" fill="#f5f1e8" font-family="Arial, sans-serif" font-size="34" font-weight="700">TigerOS Console</text>
+  <rect x="72" y="118" width="816" height="344" rx="8" fill="#1d262d" stroke="#3a4c58"/>
+  <text x="104" y="164" fill="#f5f1e8" font-family="Arial, sans-serif" font-size="26" font-weight="700">MQTT</text>
+  <text x="104" y="210" fill="#aeb9c2" font-family="Arial, sans-serif" font-size="18">Enable MQTT</text>
+  <rect x="256" y="191" width="28" height="28" rx="4" fill="#6fd38b"/>
+  <path d="M263 205l6 6 10-14" fill="none" stroke="#0f1518" stroke-width="4"/>
+  <text x="104" y="260" fill="#aeb9c2" font-family="Arial, sans-serif" font-size="18">Host</text>
+  <rect x="256" y="232" width="280" height="42" rx="6" fill="#11181d" stroke="#40525e"/>
+  <text x="274" y="259" fill="#f5f1e8" font-family="Arial, sans-serif" font-size="17">homeassistant.local</text>
+  <text x="578" y="260" fill="#aeb9c2" font-family="Arial, sans-serif" font-size="18">Port</text>
+  <rect x="648" y="232" width="118" height="42" rx="6" fill="#11181d" stroke="#40525e"/>
+  <text x="666" y="259" fill="#f5f1e8" font-family="Arial, sans-serif" font-size="17">1883</text>
+  <text x="104" y="320" fill="#aeb9c2" font-family="Arial, sans-serif" font-size="18">Home Assistant Discovery</text>
+  <rect x="344" y="301" width="28" height="28" rx="4" fill="#6fd38b"/>
+  <path d="M351 315l6 6 10-14" fill="none" stroke="#0f1518" stroke-width="4"/>
+  <text x="104" y="380" fill="#aeb9c2" font-family="Arial, sans-serif" font-size="18">Discovery Prefix</text>
+  <rect x="256" y="352" width="280" height="42" rx="6" fill="#11181d" stroke="#40525e"/>
+  <text x="274" y="379" fill="#f5f1e8" font-family="Arial, sans-serif" font-size="17">homeassistant</text>
+  <rect x="104" y="420" width="220" height="44" rx="6" fill="#f5a533"/>
+  <text x="162" y="449" fill="#11181d" font-family="Arial, sans-serif" font-size="18" font-weight="700">Save MQTT</text>
+</svg>
