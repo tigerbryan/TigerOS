@@ -293,11 +293,18 @@ function deviceHealth(device) {
   const raw = device.raw || {};
   const parseStatus = String(raw.parse_status || device.parse_status || "").toLowerCase();
   const hasState = readableStateEntries(device).length > 0;
+  const needsGattInspection = String(raw.debug || "").includes("0xFFF0") && !hasState;
   if (device.online && hasState) {
     return { label: t("online"), detail: `${t("lastSeen")}: ${formatSeenAge(device.last_seen)}`, cls: "is-online" };
   }
+  if (device.online && needsGattInspection) {
+    return { label: t("waitingValues"), detail: t("needGattInspection"), cls: "is-waiting" };
+  }
   if (device.online) {
     return { label: t("waitingValues"), detail: raw.debug || t("heardNoValues"), cls: "is-waiting" };
+  }
+  if (parseStatus === "partial" && needsGattInspection) {
+    return { label: t("waitingValues"), detail: t("needGattInspection"), cls: "is-waiting" };
   }
   if (parseStatus === "partial") {
     return { label: t("waitingValues"), detail: raw.debug || t("waitingManufacturerPacket"), cls: "is-waiting" };
@@ -347,6 +354,9 @@ function rawFromBlePacket(packet) {
     parser_protocol: packet.protocol || packet.sensor_type || "",
     parse_status: packet.parse_status || "",
     raw_adv_hex: packet.raw_adv_hex || packet.raw_advertisement || "",
+    manufacturer_data_hex: packet.manufacturer_data_hex || "",
+    service_data_hex: packet.service_data_hex || "",
+    service_uuids: packet.service_uuids || [],
     debug: packet.debug || "",
     rssi: packet.rssi,
     last_seen: packet.last_seen,

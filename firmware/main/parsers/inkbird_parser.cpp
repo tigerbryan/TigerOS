@@ -1,6 +1,25 @@
 #include "parsers/inkbird_parser.h"
 
+#include <string>
+
 namespace tigeros {
+
+namespace {
+
+std::string fff0_diagnostic_message(const BleAdvertisement& adv) {
+    std::string message = "BLE service UUID 0xFFF0 detected; private payload is not a supported Inkbird/BTHome/ATC format";
+    for (const auto& field : adv.fields) {
+        if (field.type == 0xFF && !field.data.empty()) {
+            message += "; manufacturer=";
+            message += bytes_to_hex(field.data);
+            break;
+        }
+    }
+    message += "; run GATT inspection and look for standard characteristics 0x2A6E temperature, 0x2A6F humidity, or 0x2A19 battery";
+    return message;
+}
+
+} // namespace
 
 ParsedBleSensorData parse_inkbird_sensor(const BleAdvertisement& adv) {
     ParsedBleSensorData out;
@@ -63,7 +82,7 @@ ParsedBleSensorData parse_inkbird_sensor(const BleAdvertisement& adv) {
         out.model = "BLE 0xFFF0 sensor";
         out.protocol = "ble_raw";
         out.parse_status = "partial";
-        out.debug = "BLE service UUID 0xFFF0 detected, but manufacturer payload is not a supported Inkbird format";
+        out.debug = fff0_diagnostic_message(adv);
     }
     return out;
 }

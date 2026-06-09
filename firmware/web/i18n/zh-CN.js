@@ -228,6 +228,7 @@ window.TIGEROS_I18N["zh-CN"] = {
   waitingValues: "等待数值",
   recentlyNotHeard: "最近未收到",
   heardNoValues: "已收到广播，但这包没有温湿度数值。",
+  needGattInspection: "已收到私有 0xFFF0 广播，但广播里没有标准温湿度字段。请点“检查蓝牙服务”；如果设备提供 0x2A6E/0x2A6F/0x2A19，TigerOS 可以改成短连接读取。",
   waitingManufacturerPacket: "已收到候选广播，等待带数值的制造商数据包。",
   moveDeviceCloserHint: "暂未收到广播。把设备靠近网关，或短按设备蓝牙/唤醒按钮后监听。",
   stateAndRaw: "状态与原始数据",

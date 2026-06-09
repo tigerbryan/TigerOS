@@ -228,6 +228,7 @@ window.TIGEROS_I18N.en = {
   waitingValues: "Waiting for values",
   recentlyNotHeard: "Not heard recently",
   heardNoValues: "A broadcast was heard, but this packet did not include sensor values.",
+  needGattInspection: "A private 0xFFF0 advertisement was heard, but it does not expose standard temperature fields in the broadcast. Run GATT inspection; if 0x2A6E/0x2A6F/0x2A19 are present, TigerOS can read them with a short connection.",
   waitingManufacturerPacket: "Candidate advertisement heard; waiting for the manufacturer packet with values.",
   moveDeviceCloserHint: "No broadcast heard yet. Move the device closer, or briefly press its BLE/wake button and listen.",
   stateAndRaw: "State and raw data",
