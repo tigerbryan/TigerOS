@@ -1049,12 +1049,17 @@ function gattInspectionText(inspection = bleGattInspectionCache) {
   const lines = [];
   lines.push(`mac=${inspection.mac || "-"}`);
   lines.push(`address_type=${inspection.address_type || "-"}`);
-  lines.push(`ok=${Boolean(inspection.ok)} running=${Boolean(inspection.running)} error=${inspection.error || inspection.error_code || "-"}`);
+  lines.push(`ok=${gattInspectionOk(inspection)} running=${Boolean(inspection.running)} error=${inspection.error || inspection.error_code || "-"}`);
   lines.push(`started_at=${inspection.started_at || "-"} completed_at=${inspection.completed_at || "-"}`);
   for (const row of flattenGattCharacteristics(inspection)) {
     lines.push(`${row.service_uuid} ${row.uuid} handle=${row.handle} props=${row.properties} read=${row.read_attempted ? (row.read_ok ? "ok" : `err:${row.read_error}`) : "-"} value=${row.value_hex || "-"}`);
   }
   return lines.join("\n");
+}
+
+function gattInspectionOk(inspection) {
+  if (!inspection) return false;
+  return Boolean(inspection.inspection_ok ?? inspection.gatt_ok ?? inspection.ok);
 }
 
 function renderGattSnapshots() {
@@ -1111,7 +1116,7 @@ function renderGattInspection() {
   const rows = flattenGattCharacteristics(inspection || {});
   $("gatt-characteristic-count").textContent = String(rows.length);
   summary.textContent = inspection
-    ? `${inspection.mac || "-"} · ${inspection.ok ? t("ok") : inspection.running ? t("running") : t("failed")} · ${rows.length} ${t("characteristics")} · ${t("completedAt")}: ${inspection.completed_at || "-"}s`
+    ? `${inspection.mac || "-"} · ${gattInspectionOk(inspection) ? t("ok") : inspection.running ? t("running") : t("failed")} · ${rows.length} ${t("characteristics")} · ${t("completedAt")}: ${inspection.completed_at || "-"}s`
     : t("noGattInspection");
 
   table.innerHTML = "";
@@ -1360,11 +1365,12 @@ async function inspectGattDevice(button) {
     const inspection = await waitForGattInspection(mac);
     bleGattInspectionCache = inspection;
     const serviceCount = inspection?.services?.length || 0;
+    const inspectionOk = gattInspectionOk(inspection);
     showToast(
-      inspection?.ok
+      inspectionOk
         ? `${t("gattInspectDone")}: ${serviceCount} ${t("gattServices")}`
         : `${t("gattInspectFailed")}: ${inspection?.error || inspection?.error_code || "-"}`,
-      inspection?.ok ? "success" : "error"
+      inspectionOk ? "success" : "error"
     );
     if (device) {
       openDeviceDrawer(mergedLiveDevice(device));

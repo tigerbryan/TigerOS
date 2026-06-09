@@ -191,7 +191,11 @@ std::string gatt_properties_text(uint8_t properties) {
 }
 
 void add_ble_gatt_inspection_json(cJSON* root, const BleGattInspection& inspection) {
-    cJSON_AddBoolToObject(root, "ok", inspection.ok);
+    // The HTTP request can succeed while the BLE inspection is still running
+    // or has failed. Keep API transport success separate from GATT result so
+    // the Web Console can poll without showing a generic request failure.
+    cJSON_AddBoolToObject(root, "ok", true);
+    cJSON_AddBoolToObject(root, "inspection_ok", inspection.ok);
     cJSON_AddBoolToObject(root, "running", inspection.running);
     cJSON_AddBoolToObject(root, "connected", inspection.connected);
     cJSON_AddNumberToObject(root, "error_code", inspection.error_code);
