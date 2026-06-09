@@ -19,7 +19,7 @@
 namespace {
 
 constexpr const char* TAG = "TigerOS";
-constexpr const char* TIGEROS_FW_VERSION = "1.0.64-webhook-sync";
+constexpr const char* TIGEROS_FW_VERSION = "1.0.65-cloud-heartbeat";
 constexpr const char* TIGEROS_BUILD_TIME = __DATE__ " " __TIME__;
 
 } // namespace
@@ -45,6 +45,6 @@ extern "C" void app_main(void) {
         ESP_LOGW(TAG, "OTA rollback validation skipped: %s", esp_err_to_name(ota_valid_err));
     }
 
-    ESP_LOGI(TAG, "TigerOS BLE rescue build is ready");
-    tigeros::tiger_log("INFO", TAG, "TigerOS boot complete; HTTP webhook cloud bridge is available");
+    ESP_LOGI(TAG, "TigerOS cloud heartbeat build is ready");
+    tigeros::tiger_log("INFO", TAG, "TigerOS boot complete; HTTP webhook and cloud heartbeat are available");
 }

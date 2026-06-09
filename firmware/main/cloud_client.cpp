@@ -1,7 +1,9 @@
 #include "cloud_client.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <string>
 
 #include "ble_sensor_gateway.h"
 #include "cJSON.h"
@@ -27,12 +29,13 @@ namespace {
 constexpr const char* TAG = "cloud_client";
 constexpr uint32_t CLOUD_TASK_DELAY_MS = 1000;
 constexpr int HTTP_TIMEOUT_MS = 6000;
+constexpr uint64_t HEARTBEAT_INTERVAL_SECONDS = 60;
 
 struct WebhookHttpTrace {
     int mbedtls_error = 0;
     int tls_flags = 0;
     esp_err_t tls_capture_err = ESP_OK;
-    char response[192] = {};
+    char response[768] = {};
     size_t response_len = 0;
 };
 
@@ -40,6 +43,19 @@ uint64_t uptime_seconds();
 
 bool starts_with(const std::string& value, const char* prefix) {
     return value.rfind(prefix, 0) == 0;
+}
+
+std::string heartbeat_url_from_webhook_url(const std::string& url) {
+    const size_t scheme = url.find("://");
+    if (scheme == std::string::npos) {
+        return {};
+    }
+    const size_t path = url.find('/', scheme + 3);
+    const std::string origin = path == std::string::npos ? url : url.substr(0, path);
+    if (origin.empty()) {
+        return {};
+    }
+    return origin + "/api/public/tigeros/heartbeat";
 }
 
 bool system_time_valid() {
@@ -129,6 +145,21 @@ bool has_readable_state(const UniversalDevice& device) {
     return readable;
 }
 
+int readable_device_count(const std::vector<UniversalDevice>& devices) {
+    int count = 0;
+    for (const auto& device : devices) {
+        if (device.last_seen > 0 && has_readable_state(device)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void delayed_reboot_task(void*) {
+    vTaskDelay(pdMS_TO_TICKS(1500));
+    esp_restart();
+}
+
 esp_err_t webhook_http_event_handler(esp_http_client_event_t* evt) {
     if (!evt->user_data) {
         return ESP_OK;
@@ -206,6 +237,56 @@ cJSON* build_webhook_payload(const UniversalDevice& device) {
     return root;
 }
 
+cJSON* build_heartbeat_payload(const WebhookConfig& config,
+                               bool has_pending_result,
+                               bool pending_ok,
+                               const std::string& pending_id,
+                               const std::string& pending_command,
+                               const std::string& pending_message,
+                               uint64_t last_webhook_send) {
+    auto status = device_manager().status();
+    auto wifi = wifi_manager().status();
+    auto devices = device_registry().devices();
+
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "gateway_id", status.device_id.c_str());
+    cJSON_AddStringToObject(root, "device_id", status.device_id.c_str());
+    cJSON_AddStringToObject(root, "firmware_version", status.firmware_version.c_str());
+    cJSON_AddStringToObject(root, "build_time", status.build_time.c_str());
+    cJSON_AddStringToObject(root, "lan_ip", wifi.ip_address.c_str());
+    cJSON_AddStringToObject(root, "wifi_ssid", wifi.ssid.c_str());
+    cJSON_AddNumberToObject(root, "wifi_rssi", wifi.rssi);
+    cJSON_AddNumberToObject(root, "uptime_seconds", static_cast<double>(status.uptime_seconds));
+    cJSON_AddNumberToObject(root, "free_heap", status.free_heap);
+    cJSON_AddNumberToObject(root, "minimum_free_heap", status.minimum_free_heap);
+    cJSON_AddNumberToObject(root, "sensor_count", static_cast<double>(devices.size()));
+    cJSON_AddNumberToObject(root, "readable_sensor_count", readable_device_count(devices));
+    cJSON_AddBoolToObject(root, "webhook_enabled", config.enabled);
+    cJSON_AddNumberToObject(root, "webhook_last_send_seconds", static_cast<double>(last_webhook_send));
+    cJSON_AddStringToObject(root, "status", "online");
+
+    if (system_time_valid()) {
+        std::time_t now = 0;
+        std::time(&now);
+        cJSON_AddNumberToObject(root, "sent_at_epoch", static_cast<double>(now));
+    }
+
+    // Command results are acknowledged through the next heartbeat so the cloud
+    // can move a claimed command to completed/failed without opening an inbound
+    // connection to the ESP32 inside the store network.
+    cJSON* results = cJSON_AddArrayToObject(root, "command_results");
+    if (has_pending_result && !pending_id.empty()) {
+        cJSON* item = cJSON_CreateObject();
+        cJSON_AddStringToObject(item, "id", pending_id.c_str());
+        cJSON_AddStringToObject(item, "command", pending_command.c_str());
+        cJSON_AddBoolToObject(item, "ok", pending_ok);
+        cJSON_AddStringToObject(item, "message", pending_message.c_str());
+        cJSON_AddNumberToObject(item, "completed_at_uptime", static_cast<double>(status.uptime_seconds));
+        cJSON_AddItemToArray(results, item);
+    }
+    return root;
+}
+
 } // namespace
 
 esp_err_t CloudClient::init() {
@@ -226,18 +307,19 @@ esp_err_t CloudClient::loop_once() {
     if (!cfg.enabled || cfg.url.empty() || !wifi_manager().status().connected) {
         return ESP_OK;
     }
+    const uint64_t now = uptime_seconds();
+    if (now - last_heartbeat_send_ >= HEARTBEAT_INTERVAL_SECONDS) {
+        last_heartbeat_send_ = now;
+        send_heartbeat(cfg);
+    }
     if (webhook_send_in_progress_) {
         return ESP_OK;
     }
-    const uint64_t now = uptime_seconds();
     if (now - last_webhook_send_ < static_cast<uint64_t>(cfg.interval_seconds)) {
         return ESP_OK;
     }
     last_webhook_send_ = now;
-    webhook_send_in_progress_ = true;
-    WebhookSendResult result = send_device_webhook(cfg);
-    webhook_send_in_progress_ = false;
-    return result.err;
+    return queue_webhook_send();
 }
 
 WebhookConfig CloudClient::config() const {
@@ -314,6 +396,131 @@ void CloudClient::task_loop() {
     }
 }
 
+esp_err_t CloudClient::send_heartbeat(const WebhookConfig& config) {
+    const std::string url = heartbeat_url_from_webhook_url(config.url);
+    if (url.empty()) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (starts_with(url, "https://") && !ensure_sntp_time()) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    cJSON* root = build_heartbeat_payload(config,
+                                          has_pending_command_result_,
+                                          pending_command_ok_,
+                                          pending_command_id_,
+                                          pending_command_name_,
+                                          pending_command_message_,
+                                          last_webhook_send_);
+    char* text = cJSON_PrintUnformatted(root);
+    if (!text) {
+        cJSON_Delete(root);
+        return ESP_ERR_NO_MEM;
+    }
+
+    WebhookHttpTrace trace = {};
+    esp_http_client_config_t http_config = {};
+    http_config.url = url.c_str();
+    http_config.method = HTTP_METHOD_POST;
+    http_config.timeout_ms = HTTP_TIMEOUT_MS;
+    http_config.crt_bundle_attach = esp_crt_bundle_attach;
+    http_config.user_agent = "TigerOS/1.0 ESP32-S3";
+    http_config.buffer_size = 768;
+    http_config.buffer_size_tx = 768;
+    http_config.event_handler = webhook_http_event_handler;
+    http_config.user_data = &trace;
+
+    esp_http_client_handle_t client = esp_http_client_init(&http_config);
+    if (!client) {
+        cJSON_free(text);
+        cJSON_Delete(root);
+        return ESP_FAIL;
+    }
+
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    if (!config.secret_header.empty() && !config.secret_value.empty()) {
+        esp_http_client_set_header(client, config.secret_header.c_str(), config.secret_value.c_str());
+    }
+    esp_http_client_set_post_field(client, text, std::strlen(text));
+    esp_err_t err = esp_http_client_perform(client);
+    const int status = esp_http_client_get_status_code(client);
+    const int transport_errno = esp_http_client_get_errno(client);
+    esp_http_client_cleanup(client);
+    cJSON_free(text);
+    cJSON_Delete(root);
+
+    if (err != ESP_OK || status < 200 || status >= 300) {
+        char message[384];
+        std::snprintf(message, sizeof(message),
+                      "Cloud heartbeat failed status=%d err=%s errno=%d tls=0x%x flags=0x%x response=%.220s",
+                      status, esp_err_to_name(err == ESP_OK ? ESP_FAIL : err), transport_errno,
+                      trace.mbedtls_error, trace.tls_flags, trace.response);
+        tiger_log("WARN", TAG, message);
+        return err == ESP_OK ? ESP_FAIL : err;
+    }
+
+    if (has_pending_command_result_) {
+        has_pending_command_result_ = false;
+        pending_command_id_.clear();
+        pending_command_name_.clear();
+        pending_command_message_.clear();
+    }
+
+    cJSON* response = cJSON_Parse(trace.response);
+    if (!response) {
+        tiger_log("WARN", TAG, "Cloud heartbeat response was not valid JSON");
+        return ESP_OK;
+    }
+    cJSON* commands = cJSON_GetObjectItem(response, "commands");
+    if (cJSON_IsArray(commands)) {
+        handle_cloud_commands(commands);
+    }
+    cJSON_Delete(response);
+    tiger_log("INFO", TAG, "Cloud heartbeat sent");
+    return ESP_OK;
+}
+
+void CloudClient::record_command_result(const char* id, const char* command, bool ok, const char* message) {
+    pending_command_id_ = id ? id : "";
+    pending_command_name_ = command ? command : "";
+    pending_command_ok_ = ok;
+    pending_command_message_ = message ? message : "";
+    has_pending_command_result_ = !pending_command_id_.empty();
+}
+
+void CloudClient::handle_cloud_commands(cJSON* commands) {
+    cJSON* item = nullptr;
+    cJSON_ArrayForEach(item, commands) {
+        cJSON* id = cJSON_GetObjectItem(item, "id");
+        cJSON* command = cJSON_GetObjectItem(item, "command");
+        if (!cJSON_IsString(id) || !cJSON_IsString(command)) {
+            continue;
+        }
+
+        char log_message[160];
+        std::snprintf(log_message, sizeof(log_message), "Cloud command received: %s", command->valuestring);
+        tiger_log("INFO", TAG, log_message);
+
+        if (std::strcmp(command->valuestring, "sync_webhook") == 0) {
+            esp_err_t err = queue_webhook_send();
+            record_command_result(id->valuestring, command->valuestring, err == ESP_OK,
+                                  err == ESP_OK ? "Webhook sync queued" : esp_err_to_name(err));
+        } else if (std::strcmp(command->valuestring, "reboot") == 0) {
+            record_command_result(id->valuestring, command->valuestring, true, "Reboot scheduled");
+            xTaskCreate(delayed_reboot_task, "cloud_reboot", 2048, nullptr, 5, nullptr);
+        } else if (std::strcmp(command->valuestring, "ota_check") == 0) {
+            record_command_result(id->valuestring, command->valuestring, false,
+                                  "Remote OTA check command is not enabled in this build");
+        } else if (std::strcmp(command->valuestring, "upload_logs") == 0) {
+            record_command_result(id->valuestring, command->valuestring, false,
+                                  "Log upload command is not enabled in this build");
+        } else {
+            record_command_result(id->valuestring, command->valuestring, false, "Unknown command");
+        }
+        return;
+    }
+}
+
 WebhookSendResult CloudClient::send_device_webhook(const WebhookConfig& config) {
     WebhookSendResult result;
     if (starts_with(config.url, "https://") && !ensure_sntp_time()) {
@@ -386,7 +593,7 @@ WebhookSendResult CloudClient::send_device_webhook(const WebhookConfig& config) 
         result.failed_count++;
         char message[384];
         std::snprintf(message, sizeof(message),
-                      "Webhook POST failed device=%s status=%d err=%s errno=%d tls=0x%x flags=0x%x response=%s heap=%lu",
+                      "Webhook POST failed device=%s status=%d err=%s errno=%d tls=0x%x flags=0x%x response=%.180s heap=%lu",
                       device.id.c_str(), status, esp_err_to_name(result.err), transport_errno,
                       trace.mbedtls_error, trace.tls_flags, trace.response,
                       static_cast<unsigned long>(esp_get_free_heap_size()));
