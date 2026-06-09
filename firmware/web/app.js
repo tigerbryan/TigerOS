@@ -1445,6 +1445,29 @@ async function scanBleWithFeedback() {
   }
 }
 
+async function syncWebhookWithFeedback() {
+  const button = $("devices-sync-webhook-button");
+  const oldText = button.textContent;
+  button.disabled = true;
+  button.textContent = t("syncing");
+  $("device-page-summary").textContent = t("webhookSyncStarting");
+  try {
+    await postJson("/api/webhook/sync");
+    $("device-page-summary").textContent = t("webhookSyncQueued");
+    showToast(t("webhookSyncQueued"), "success");
+    await loadLogs();
+    setTimeout(() => loadLogs().catch(() => {}), 3500);
+    setTimeout(() => loadLogs().catch(() => {}), 9000);
+  } catch (error) {
+    const message = `${t("webhookSyncFailed")}: ${error.message}`;
+    $("device-page-summary").textContent = message;
+    showToast(message, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = oldText;
+  }
+}
+
 async function listenToDevice(button) {
   const oldText = button.textContent;
   const id = button.dataset.id;
@@ -1820,6 +1843,7 @@ $("devices-show-more-button").addEventListener("click", () => {
 });
 
 $("devices-scan-ble-button").addEventListener("click", scanBleWithFeedback);
+$("devices-sync-webhook-button").addEventListener("click", syncWebhookWithFeedback);
 
 $("gatt-refresh-button").addEventListener("click", async () => {
   try {

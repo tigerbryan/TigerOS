@@ -1396,6 +1396,7 @@ esp_err_t register_api_routes(httpd_handle_t server) {
     httpd_uri_t webhook_get = uri("/api/webhook", HTTP_GET, webhook_get_handler);
     httpd_uri_t webhook_post = uri("/api/webhook", HTTP_POST, webhook_post_handler);
     httpd_uri_t webhook_test = uri("/api/webhook/test", HTTP_POST, webhook_test_handler);
+    httpd_uri_t webhook_sync = uri("/api/webhook/sync", HTTP_POST, webhook_test_handler);
     httpd_uri_t ble_get = uri("/api/ble", HTTP_GET, ble_get_handler);
     httpd_uri_t ble_post = uri("/api/ble", HTTP_POST, ble_post_handler);
     httpd_uri_t hardware_get = uri("/api/hardware", HTTP_GET, hardware_get_handler);
@@ -1449,6 +1450,7 @@ esp_err_t register_api_routes(httpd_handle_t server) {
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &webhook_get));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &webhook_post));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &webhook_test));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &webhook_sync));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ble_get));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ble_post));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &hardware_get));

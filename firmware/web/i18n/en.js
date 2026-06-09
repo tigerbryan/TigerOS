@@ -80,6 +80,8 @@ window.TIGEROS_I18N.en = {
   diagnostics: "Diagnostics",
   addDevice: "Watch Device",
   scanBle: "Scan BLE",
+  syncWebhook: "Sync Supermarcat OS",
+  syncing: "Syncing...",
   discoverMqtt: "Discover MQTT",
   addByIp: "Add by IP",
   deviceType: "Device Type",
@@ -255,6 +257,9 @@ window.TIGEROS_I18N.en = {
   webhookSettingsSaved: "Webhook settings saved.",
   webhookTesting: "Sending test data...",
   webhookTestSent: "Webhook test sent.",
+  webhookSyncStarting: "Queueing Supermarcat OS sync...",
+  webhookSyncQueued: "Supermarcat OS sync queued. Readable watched devices will be sent by webhook.",
+  webhookSyncFailed: "Supermarcat OS sync failed",
   webhookDeliveryLogs: "Webhook Delivery Logs",
   noWebhookLogs: "No webhook delivery logs yet."
 };

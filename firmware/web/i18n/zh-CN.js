@@ -80,6 +80,8 @@ window.TIGEROS_I18N["zh-CN"] = {
   diagnostics: "诊断",
   addDevice: "关注设备",
   scanBle: "扫描 BLE",
+  syncWebhook: "同步到 Supermarcat OS",
+  syncing: "同步中...",
   discoverMqtt: "发现 MQTT",
   addByIp: "通过 IP 添加",
   deviceType: "设备类型",
@@ -255,6 +257,9 @@ window.TIGEROS_I18N["zh-CN"] = {
   webhookSettingsSaved: "Webhook 设置已保存。",
   webhookTesting: "正在发送测试数据...",
   webhookTestSent: "Webhook 测试已发送。",
+  webhookSyncStarting: "正在排队同步到 Supermarcat OS...",
+  webhookSyncQueued: "已排队同步到 Supermarcat OS；有可读数值的已关注设备会通过 Webhook 发送。",
+  webhookSyncFailed: "同步到 Supermarcat OS 失败",
   webhookDeliveryLogs: "Webhook 推送日志",
   noWebhookLogs: "暂无 Webhook 推送日志。"
 };
