@@ -51,6 +51,11 @@ bool ble_reading_is_fresh(uint64_t last_seen) {
     return last_seen > 0 && now >= last_seen && now - last_seen < BLE_ONLINE_WINDOW_SECONDS;
 }
 
+bool is_unconfirmed_fff0_sensor(const BleSensorReading& reading) {
+    return reading.protocol == "ble_raw" && reading.model == "BLE 0xFFF0 sensor" &&
+           (reading.parse_status == "partial" || reading.parse_status == "unknown");
+}
+
 std::string json_print(cJSON* root) {
     char* text = cJSON_PrintUnformatted(root);
     std::string out = text ? text : "{}";
@@ -171,10 +176,11 @@ UniversalDevice from_universal_config_with_ble_reading(const PairedUniversalDevi
     device.adapter = "ble_sensor";
     device.address = config.address.empty() ? reading.mac_address : config.address;
     device.location = config.location;
+    const bool keep_parser_identity = is_unconfirmed_fff0_sensor(reading);
     if (!reading.brand.empty() && reading.brand != "generic" && reading.brand != "unknown") device.brand = reading.brand;
-    else if (!config.brand.empty() && config.brand != "generic" && config.brand != "unknown") device.brand = config.brand;
+    else if (!keep_parser_identity && !config.brand.empty() && config.brand != "generic" && config.brand != "unknown") device.brand = config.brand;
     if (!reading.model.empty() && reading.model != "manual" && reading.model != "unknown") device.model = reading.model;
-    else if (!config.model.empty() && config.model != "manual" && config.model != "unknown") device.model = config.model;
+    else if (!keep_parser_identity && !config.model.empty() && config.model != "manual" && config.model != "unknown") device.model = config.model;
     if (device.capabilities.empty()) device.capabilities.push_back("raw");
     return device;
 }

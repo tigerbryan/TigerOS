@@ -55,12 +55,15 @@ ParsedBleSensorData parse_inkbird_sensor(const BleAdvertisement& adv) {
         out.parse_status = "partial";
         out.debug = "Inkbird-style name detected but manufacturer payload did not match known layout";
     } else if (has_inkbird_candidate_uuid) {
+        // 0xFFF0 is used by several BLE thermometers and is not unique to
+        // Inkbird. Keep the packet visible for diagnostics, but do not label
+        // the device as Inkbird until a known Inkbird payload is present.
         out.recognized = true;
-        out.brand = "inkbird";
-        out.model = "IBS-TH candidate";
-        out.protocol = "inkbird";
+        out.brand = "generic";
+        out.model = "BLE 0xFFF0 sensor";
+        out.protocol = "ble_raw";
         out.parse_status = "partial";
-        out.debug = "Inkbird candidate service UUID 0xFFF0 detected; waiting for manufacturer data packet";
+        out.debug = "BLE service UUID 0xFFF0 detected, but manufacturer payload is not a supported Inkbird format";
     }
     return out;
 }

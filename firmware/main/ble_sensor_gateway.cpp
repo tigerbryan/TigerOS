@@ -33,6 +33,11 @@ constexpr size_t MAX_DISCOVERED = 64;
 constexpr size_t MAX_RAW_PACKETS = 64;
 constexpr size_t MAX_UNKNOWN_RAW_SAMPLES = 12;
 
+bool is_unconfirmed_fff0_sensor(const BleSensorReading& reading) {
+    return reading.protocol == "ble_raw" && reading.model == "BLE 0xFFF0 sensor" &&
+           (reading.parse_status == "partial" || reading.parse_status == "unknown");
+}
+
 bool has_watched_ble_devices() {
     if (ble_sensor_gateway().paired_count() > 0) {
         return true;
@@ -237,9 +242,10 @@ BleSensorReading from_last_reading(const PairedBleSensorConfig& cfg, const BleSe
     reading.humidity_percent = cached.humidity_percent;
     reading.battery_percent = cached.battery_percent;
     reading.external_probe_temperature_c = cached.external_probe_temperature_c;
-    if (!cfg.brand.empty() && cfg.brand != "unknown" && cfg.brand != "generic") reading.brand = cfg.brand;
-    if (!cfg.model.empty() && cfg.model != "unknown" && cfg.model != "manual") reading.model = cfg.model;
-    if (!cfg.protocol.empty() && cfg.protocol != "unknown" && cfg.protocol != "ble_raw" && cfg.protocol != "ble") {
+    const bool keep_parser_identity = is_unconfirmed_fff0_sensor(reading);
+    if (!keep_parser_identity && !cfg.brand.empty() && cfg.brand != "unknown" && cfg.brand != "generic") reading.brand = cfg.brand;
+    if (!keep_parser_identity && !cfg.model.empty() && cfg.model != "unknown" && cfg.model != "manual") reading.model = cfg.model;
+    if (!keep_parser_identity && !cfg.protocol.empty() && cfg.protocol != "unknown" && cfg.protocol != "ble_raw" && cfg.protocol != "ble") {
         reading.protocol = cfg.protocol;
     }
     return reading;
@@ -478,9 +484,10 @@ std::vector<BleSensorReading> BleSensorGateway::discovered() {
             reading.paired = true;
             reading.display_name = it->name.empty() ? reading.mac_address : it->name;
             reading.location = it->location;
-            if (!it->brand.empty() && it->brand != "unknown" && it->brand != "generic") reading.brand = it->brand;
-            if (!it->model.empty() && it->model != "unknown" && it->model != "manual") reading.model = it->model;
-            if (!it->protocol.empty() && it->protocol != "unknown" && it->protocol != "ble_raw" && it->protocol != "ble") {
+            const bool keep_parser_identity = is_unconfirmed_fff0_sensor(reading);
+            if (!keep_parser_identity && !it->brand.empty() && it->brand != "unknown" && it->brand != "generic") reading.brand = it->brand;
+            if (!keep_parser_identity && !it->model.empty() && it->model != "unknown" && it->model != "manual") reading.model = it->model;
+            if (!keep_parser_identity && !it->protocol.empty() && it->protocol != "unknown" && it->protocol != "ble_raw" && it->protocol != "ble") {
                 reading.protocol = it->protocol;
             }
         }
@@ -506,9 +513,10 @@ std::vector<BleSensorReading> BleSensorGateway::paired_latest() {
             reading.paired = true;
             reading.display_name = cfg.name.empty() ? cfg.mac_address : cfg.name;
             reading.location = cfg.location;
-            if (!cfg.brand.empty() && cfg.brand != "unknown" && cfg.brand != "generic") reading.brand = cfg.brand;
-            if (!cfg.model.empty() && cfg.model != "unknown" && cfg.model != "manual") reading.model = cfg.model;
-            if (!cfg.protocol.empty() && cfg.protocol != "unknown" && cfg.protocol != "ble_raw" && cfg.protocol != "ble") {
+            const bool keep_parser_identity = is_unconfirmed_fff0_sensor(reading);
+            if (!keep_parser_identity && !cfg.brand.empty() && cfg.brand != "unknown" && cfg.brand != "generic") reading.brand = cfg.brand;
+            if (!keep_parser_identity && !cfg.model.empty() && cfg.model != "unknown" && cfg.model != "manual") reading.model = cfg.model;
+            if (!keep_parser_identity && !cfg.protocol.empty() && cfg.protocol != "unknown" && cfg.protocol != "ble_raw" && cfg.protocol != "ble") {
                 reading.protocol = cfg.protocol;
             }
             out.push_back(reading);
@@ -1122,9 +1130,10 @@ void BleSensorGateway::upsert_reading(const BleSensorReading& reading) {
         next.paired = true;
         next.display_name = pair_it->name.empty() ? next.name : pair_it->name;
         next.location = pair_it->location;
-        if (!pair_it->brand.empty() && pair_it->brand != "unknown") next.brand = pair_it->brand;
-        if (!pair_it->model.empty() && pair_it->model != "unknown") next.model = pair_it->model;
-        if (!pair_it->protocol.empty() && pair_it->protocol != "unknown" && pair_it->protocol != "ble_raw" && pair_it->protocol != "ble") {
+        const bool keep_parser_identity = is_unconfirmed_fff0_sensor(next);
+        if (!keep_parser_identity && !pair_it->brand.empty() && pair_it->brand != "unknown") next.brand = pair_it->brand;
+        if (!keep_parser_identity && !pair_it->model.empty() && pair_it->model != "unknown") next.model = pair_it->model;
+        if (!keep_parser_identity && !pair_it->protocol.empty() && pair_it->protocol != "unknown" && pair_it->protocol != "ble_raw" && pair_it->protocol != "ble") {
             next.protocol = pair_it->protocol;
         }
     }
