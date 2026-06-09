@@ -20,6 +20,7 @@ idf_component_register(
         "parsers/atc_parser.cpp"
         "parsers/xiaomi_parser.cpp"
         "parsers/bthome_parser.cpp"
+        "parsers/thermobeacon_parser.cpp"
         "parsers/unknown_ble_parser.cpp"
         "mqtt_manager.cpp"
         "wifi_manager.cpp"

@@ -3,6 +3,7 @@
 #include "parsers/atc_parser.h"
 #include "parsers/bthome_parser.h"
 #include "parsers/inkbird_parser.h"
+#include "parsers/thermobeacon_parser.h"
 #include "parsers/unknown_ble_parser.h"
 #include "parsers/xiaomi_parser.h"
 
@@ -19,6 +20,10 @@ ParsedBleSensorData parse_ble_sensor_advertisement(const BleAdvertisement& adv) 
     ParsedBleSensorData inkbird = parse_inkbird_sensor(adv);
     if (inkbird.recognized && inkbird.parse_status == "ok") return inkbird;
     if (!parsed.recognized && inkbird.recognized) parsed = inkbird;
+
+    ParsedBleSensorData thermobeacon = parse_thermobeacon_sensor(adv);
+    if (thermobeacon.recognized && thermobeacon.parse_status == "ok") return thermobeacon;
+    if (!parsed.recognized && thermobeacon.recognized) parsed = thermobeacon;
 
     ParsedBleSensorData xiaomi = parse_xiaomi_sensor(adv);
     if (xiaomi.recognized && (xiaomi.parse_status == "encrypted" || xiaomi.parse_status == "partial")) return xiaomi;
