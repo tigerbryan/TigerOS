@@ -48,6 +48,7 @@ private:
     static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     void handle_event(esp_event_base_t event_base, int32_t event_id, void* event_data);
     esp_err_t configure_station(const std::string& ssid, const std::string& password);
+    esp_err_t stop_setup_ap();
     std::string build_ap_ssid() const;
     void update_ip_address(esp_netif_ip_info_t ip_info);
     static std::string auth_mode_name(wifi_auth_mode_t auth_mode);
@@ -59,6 +60,7 @@ private:
     bool ap_active_ = false;
     bool sta_started_ = false;
     bool connected_ = false;
+    int disconnect_count_ = 0;
     std::string current_ssid_;
     std::string ap_ssid_;
     std::string ip_address_;

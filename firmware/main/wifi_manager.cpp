@@ -17,6 +17,7 @@ namespace tigeros {
 namespace {
 
 constexpr const char* TAG = "wifi_manager";
+constexpr int SETUP_AP_DISCONNECT_THRESHOLD = 3;
 } // namespace
 
 esp_err_t WifiManager::init() {
@@ -46,6 +47,9 @@ esp_err_t WifiManager::init() {
 esp_err_t WifiManager::start() {
     auto credentials = nvs_store().get_wifi_credentials();
     if (credentials) {
+        ESP_LOGI(TAG,
+                 "Saved WiFi credentials found; setup AP will start after %d failed reconnects",
+                 SETUP_AP_DISCONNECT_THRESHOLD);
         return connect_with_saved_credentials();
     }
     return start_setup_ap();
@@ -65,6 +69,10 @@ esp_err_t WifiManager::save_and_connect(const std::string& ssid, const std::stri
 }
 
 esp_err_t WifiManager::start_setup_ap() {
+    if (ap_active_) {
+        return ESP_OK;
+    }
+
     ap_ssid_ = build_ap_ssid();
 
     wifi_config_t ap_config = {};
@@ -75,15 +83,29 @@ esp_err_t WifiManager::start_setup_ap() {
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
     ap_config.ap.pmf_cfg.required = false;
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    esp_err_t err = esp_wifi_set_mode(WIFI_MODE_APSTA);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to switch WiFi to APSTA mode: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_wifi_set_config(WIFI_IF_AP, &ap_config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure setup AP: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_wifi_start();
+    if (err != ESP_OK && err != ESP_ERR_WIFI_STATE) {
+        ESP_LOGE(TAG, "Failed to start WiFi for setup AP: %s", esp_err_to_name(err));
+        return err;
+    }
 
     ap_active_ = true;
-    sta_started_ = false;
-    connected_ = false;
-    ip_address_ = "192.168.4.1";
-    ESP_LOGI(TAG, "Setup AP started: %s", ap_ssid_.c_str());
+    if (!connected_) {
+        ip_address_ = "192.168.4.1";
+    }
+    ESP_LOGI(TAG, "Setup AP available: %s at 192.168.4.1", ap_ssid_.c_str());
     return ESP_OK;
 }
 
@@ -160,7 +182,13 @@ void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, vo
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         connected_ = false;
         ip_address_.clear();
-        ESP_LOGW(TAG, "WiFi disconnected, reconnecting");
+        disconnect_count_ += 1;
+        if (!ap_active_ && disconnect_count_ >= SETUP_AP_DISCONNECT_THRESHOLD) {
+            ESP_LOGW(TAG, "WiFi disconnected %d times, starting setup AP", disconnect_count_);
+            ESP_ERROR_CHECK_WITHOUT_ABORT(start_setup_ap());
+        } else {
+            ESP_LOGW(TAG, "WiFi disconnected, reconnecting");
+        }
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
         ap_active_ = true;
@@ -169,8 +197,12 @@ void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, vo
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         connected_ = true;
+        disconnect_count_ = 0;
         update_ip_address(event->ip_info);
         ESP_LOGI(TAG, "Connected with IP: %s", ip_address_.c_str());
+        if (ap_active_) {
+            ESP_ERROR_CHECK_WITHOUT_ABORT(stop_setup_ap());
+        }
     }
 }
 
@@ -186,6 +218,7 @@ esp_err_t WifiManager::configure_station(const std::string& ssid, const std::str
 
     current_ssid_ = ssid;
     sta_started_ = true;
+    disconnect_count_ = 0;
 
     wifi_mode_t mode = ap_active_ ? WIFI_MODE_APSTA : WIFI_MODE_STA;
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
@@ -195,6 +228,21 @@ esp_err_t WifiManager::configure_station(const std::string& ssid, const std::str
         return err;
     }
     return esp_wifi_connect();
+}
+
+esp_err_t WifiManager::stop_setup_ap() {
+    if (!ap_active_) {
+        return ESP_OK;
+    }
+
+    esp_err_t err = esp_wifi_set_mode(sta_started_ ? WIFI_MODE_STA : WIFI_MODE_NULL);
+    if (err != ESP_OK) {
+        return err;
+    }
+    ap_active_ = false;
+    ap_ssid_.clear();
+    ESP_LOGI(TAG, "Setup AP stopped");
+    return ESP_OK;
 }
 
 std::string WifiManager::build_ap_ssid() const {
