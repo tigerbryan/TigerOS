@@ -19,7 +19,7 @@
 namespace {
 
 constexpr const char* TAG = "TigerOS";
-constexpr const char* TIGEROS_FW_VERSION = "1.0.68-wifi-forget-hardening";
+constexpr const char* TIGEROS_FW_VERSION = "1.0.69-wifi-scan-apsta";
 constexpr const char* TIGEROS_BUILD_TIME = __DATE__ " " __TIME__;
 
 } // namespace

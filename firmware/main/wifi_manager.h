@@ -60,6 +60,7 @@ private:
     bool ap_active_ = false;
     bool sta_started_ = false;
     bool connected_ = false;
+    bool station_connect_enabled_ = false;
     int disconnect_count_ = 0;
     std::string current_ssid_;
     std::string ap_ssid_;

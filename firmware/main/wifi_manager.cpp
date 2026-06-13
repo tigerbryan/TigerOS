@@ -84,8 +84,7 @@ esp_err_t WifiManager::start_setup_ap() {
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
     ap_config.ap.pmf_cfg.required = false;
 
-    const bool keep_station_active = sta_started_ && !current_ssid_.empty();
-    esp_err_t err = esp_wifi_set_mode(keep_station_active ? WIFI_MODE_APSTA : WIFI_MODE_AP);
+    esp_err_t err = esp_wifi_set_mode(WIFI_MODE_APSTA);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to switch WiFi to setup AP mode: %s", esp_err_to_name(err));
         return err;
@@ -180,10 +179,16 @@ void WifiManager::event_handler(void* arg, esp_event_base_t event_base, int32_t 
 void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         sta_started_ = true;
-        esp_wifi_connect();
+        if (station_connect_enabled_ && !current_ssid_.empty()) {
+            esp_wifi_connect();
+        }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         connected_ = false;
         ip_address_.clear();
+        if (!station_connect_enabled_ || current_ssid_.empty()) {
+            ESP_LOGW(TAG, "WiFi station disconnected while setup AP is active");
+            return;
+        }
         disconnect_count_ += 1;
         if (!ap_active_ && disconnect_count_ >= SETUP_AP_DISCONNECT_THRESHOLD) {
             ESP_LOGW(TAG, "WiFi disconnected %d times, starting setup AP", disconnect_count_);
@@ -220,6 +225,7 @@ esp_err_t WifiManager::configure_station(const std::string& ssid, const std::str
 
     current_ssid_ = ssid;
     sta_started_ = true;
+    station_connect_enabled_ = true;
     disconnect_count_ = 0;
 
     wifi_mode_t mode = ap_active_ ? WIFI_MODE_APSTA : WIFI_MODE_STA;
