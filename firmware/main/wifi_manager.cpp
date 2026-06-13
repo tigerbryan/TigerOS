@@ -49,8 +49,8 @@ esp_err_t WifiManager::start() {
     auto credentials = nvs_store().get_wifi_credentials();
     if (credentials) {
         ESP_LOGI(TAG,
-                 "Saved WiFi credentials found; setup AP will start after %d failed reconnects",
-                 SETUP_AP_DISCONNECT_THRESHOLD);
+                 "Saved WiFi credentials found; setup AP will stay available until LAN IP is assigned");
+        ESP_RETURN_ON_ERROR(start_setup_ap(), TAG, "start setup AP failed");
         return connect_with_saved_credentials();
     }
     return start_setup_ap();
