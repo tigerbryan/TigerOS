@@ -36,6 +36,7 @@ esp_err_t WifiManager::init() {
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiManager::event_handler, this, nullptr));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiManager::event_handler, this, nullptr));
 
@@ -83,9 +84,10 @@ esp_err_t WifiManager::start_setup_ap() {
     ap_config.ap.authmode = WIFI_AUTH_OPEN;
     ap_config.ap.pmf_cfg.required = false;
 
-    esp_err_t err = esp_wifi_set_mode(WIFI_MODE_APSTA);
+    const bool keep_station_active = sta_started_ && !current_ssid_.empty();
+    esp_err_t err = esp_wifi_set_mode(keep_station_active ? WIFI_MODE_APSTA : WIFI_MODE_AP);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to switch WiFi to APSTA mode: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to switch WiFi to setup AP mode: %s", esp_err_to_name(err));
         return err;
     }
 

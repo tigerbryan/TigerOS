@@ -15,6 +15,7 @@
 #include "device_registry.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "mqtt_manager.h"
@@ -365,6 +366,12 @@ esp_err_t wifi_forget_handler(httpd_req_t* req) {
     if (clear_err != ESP_OK) {
         ESP_LOGE(TAG, "clear_wifi_credentials failed: %s", esp_err_to_name(clear_err));
         return send_error(req, 500, "Failed to forget WiFi credentials");
+    }
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
+    esp_err_t restore_err = esp_wifi_restore();
+    if (restore_err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_restore failed: %s", esp_err_to_name(restore_err));
+        return send_error(req, 500, "Failed to clear WiFi driver credentials");
     }
     tiger_log("WARN", TAG, "WiFi credentials forgotten from Web Console");
     send_json(req, "{\"ok\":true,\"message\":\"WiFi credentials forgotten; rebooting into setup AP\",\"reboot_ms\":1000}");
