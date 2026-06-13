@@ -238,13 +238,15 @@ esp_err_t WifiManager::configure_station(const std::string& ssid, const std::str
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
     esp_err_t err = esp_wifi_start();
-    if (err == ESP_OK) {
-        return ESP_OK;
-    }
-    if (err != ESP_ERR_WIFI_STATE) {
+    if (err != ESP_OK && err != ESP_ERR_WIFI_STATE) {
         return err;
     }
-    return esp_wifi_connect();
+    err = esp_wifi_connect();
+    if (err == ESP_ERR_WIFI_CONN) {
+        ESP_LOGW(TAG, "WiFi station is already connecting");
+        return ESP_OK;
+    }
+    return err;
 }
 
 esp_err_t WifiManager::stop_setup_ap() {
