@@ -2149,6 +2149,12 @@ $("wifi-form").addEventListener("submit", async (event) => {
   await loadStatus();
 });
 
+$("forget-wifi-button").addEventListener("click", async () => {
+  if (!confirm(t("forgetWifiConfirm"))) return;
+  await postJson("/api/wifi/forget");
+  showToast(t("forgetWifiRequested"));
+});
+
 $("reboot-button").addEventListener("click", async () => {
   if (!confirm("Reboot TigerOS now?")) return;
   await postJson("/api/reboot");

@@ -356,6 +356,22 @@ esp_err_t wifi_scan_handler(httpd_req_t* req) {
     return err;
 }
 
+esp_err_t wifi_forget_handler(httpd_req_t* req) {
+    if (!authorized(req)) {
+        return require_auth(req);
+    }
+
+    esp_err_t clear_err = nvs_store().clear_wifi_credentials();
+    if (clear_err != ESP_OK) {
+        ESP_LOGE(TAG, "clear_wifi_credentials failed: %s", esp_err_to_name(clear_err));
+        return send_error(req, 500, "Failed to forget WiFi credentials");
+    }
+    tiger_log("WARN", TAG, "WiFi credentials forgotten from Web Console");
+    send_json(req, "{\"ok\":true,\"message\":\"WiFi credentials forgotten; rebooting into setup AP\",\"reboot_ms\":1000}");
+    restart_after_response(1000);
+    return ESP_OK;
+}
+
 esp_err_t reboot_handler(httpd_req_t* req) {
     if (!authorized(req)) {
         return require_auth(req);
@@ -1381,6 +1397,7 @@ esp_err_t register_api_routes(httpd_handle_t server) {
     httpd_uri_t login = uri("/api/login", HTTP_POST, login_handler);
     httpd_uri_t wifi = uri("/api/wifi", HTTP_POST, wifi_handler);
     httpd_uri_t wifi_scan = uri("/api/wifi/scan", HTTP_GET, wifi_scan_handler);
+    httpd_uri_t wifi_forget = uri("/api/wifi/forget", HTTP_POST, wifi_forget_handler);
     httpd_uri_t reboot = uri("/api/reboot", HTTP_POST, reboot_handler);
     httpd_uri_t factory_reset = uri("/api/factory-reset", HTTP_POST, factory_reset_handler);
     httpd_uri_t ota = uri("/api/ota", HTTP_POST, ota_handler);
@@ -1435,6 +1452,7 @@ esp_err_t register_api_routes(httpd_handle_t server) {
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &login));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &wifi));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &wifi_scan));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &wifi_forget));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &reboot));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &factory_reset));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &ota));
