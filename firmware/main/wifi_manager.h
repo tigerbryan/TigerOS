@@ -25,6 +25,8 @@ struct WifiStatus {
     std::string ap_ssid;
     std::string ip_address;
     int rssi = 0;
+    int disconnect_count = 0;
+    int last_disconnect_reason = 0;
 };
 
 struct WifiNetwork {
@@ -62,6 +64,7 @@ private:
     bool connected_ = false;
     bool station_connect_enabled_ = false;
     int disconnect_count_ = 0;
+    int last_disconnect_reason_ = 0;
     std::string current_ssid_;
     std::string ap_ssid_;
     std::string ip_address_;

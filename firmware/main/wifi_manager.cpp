@@ -119,6 +119,8 @@ WifiStatus WifiManager::status() const {
     out.ap_ssid = ap_ssid_;
     out.ip_address = ip_address_;
     out.rssi = rssi_;
+    out.disconnect_count = disconnect_count_;
+    out.last_disconnect_reason = last_disconnect_reason_;
 
     if (connected_) {
         wifi_ap_record_t ap_record = {};
@@ -183,18 +185,20 @@ void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, vo
             esp_wifi_connect();
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        auto* event = static_cast<wifi_event_sta_disconnected_t*>(event_data);
         connected_ = false;
         ip_address_.clear();
+        last_disconnect_reason_ = event ? event->reason : 0;
         if (!station_connect_enabled_ || current_ssid_.empty()) {
-            ESP_LOGW(TAG, "WiFi station disconnected while setup AP is active");
+            ESP_LOGW(TAG, "WiFi station disconnected while setup AP is active, reason=%d", last_disconnect_reason_);
             return;
         }
         disconnect_count_ += 1;
         if (!ap_active_ && disconnect_count_ >= SETUP_AP_DISCONNECT_THRESHOLD) {
-            ESP_LOGW(TAG, "WiFi disconnected %d times, starting setup AP", disconnect_count_);
+            ESP_LOGW(TAG, "WiFi disconnected %d times, reason=%d, starting setup AP", disconnect_count_, last_disconnect_reason_);
             ESP_ERROR_CHECK_WITHOUT_ABORT(start_setup_ap());
         } else {
-            ESP_LOGW(TAG, "WiFi disconnected, reconnecting");
+            ESP_LOGW(TAG, "WiFi disconnected, reason=%d, reconnecting", last_disconnect_reason_);
         }
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
@@ -205,6 +209,7 @@ void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, vo
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         connected_ = true;
         disconnect_count_ = 0;
+        last_disconnect_reason_ = 0;
         update_ip_address(event->ip_info);
         ESP_LOGI(TAG, "Connected with IP: %s", ip_address_.c_str());
         if (ap_active_) {
@@ -227,12 +232,16 @@ esp_err_t WifiManager::configure_station(const std::string& ssid, const std::str
     sta_started_ = true;
     station_connect_enabled_ = true;
     disconnect_count_ = 0;
+    last_disconnect_reason_ = 0;
 
     wifi_mode_t mode = ap_active_ ? WIFI_MODE_APSTA : WIFI_MODE_STA;
     ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
     esp_err_t err = esp_wifi_start();
-    if (err != ESP_OK && err != ESP_ERR_WIFI_STATE) {
+    if (err == ESP_OK) {
+        return ESP_OK;
+    }
+    if (err != ESP_ERR_WIFI_STATE) {
         return err;
     }
     return esp_wifi_connect();

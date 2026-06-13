@@ -15,6 +15,8 @@ struct DeviceStatus {
     std::string hardware_model = "esp32-s3";
     std::string chip_model;
     bool wifi_connected = false;
+    int wifi_disconnect_count = 0;
+    int wifi_last_disconnect_reason = 0;
     uint64_t uptime_seconds = 0;
     uint32_t free_heap = 0;
     uint32_t minimum_free_heap = 0;

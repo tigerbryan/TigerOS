@@ -1589,6 +1589,23 @@ async function scanNetworks() {
   return scanNetworksInto("wifi-networks");
 }
 
+async function waitForWifiOnboarding() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const response = await fetch("/api/status", { cache: "no-store" });
+    const status = await response.json();
+    updateOnboardingState(status);
+    if (status.wifi_connected && status.ip_address && status.ip_address !== "192.168.4.1") {
+      return status;
+    }
+    if (Number(status.wifi_disconnect_count || 0) > 0) {
+      const reason = status.wifi_last_disconnect_reason || "-";
+      throw new Error(`${t("wifiConnectFailedReason")} ${reason}`);
+    }
+  }
+  throw new Error(t("wifiConnectTimedOut"));
+}
+
 async function postJson(url, payload = {}) {
   return apiFetch(url, {
     method: "POST",
@@ -1724,7 +1741,7 @@ $("onboarding-wifi-form").addEventListener("submit", async (event) => {
       password: $("onboarding-password").value,
     });
     setStatus("onboarding-status", t("wifiSavedWaitingIp"), "success");
-    await loadStatus();
+    await waitForWifiOnboarding();
   } catch (error) {
     setStatus("onboarding-status", `${t("wifiConnectFailed")}: ${error.message}`, "error");
   } finally {

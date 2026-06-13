@@ -26,6 +26,8 @@ window.TIGEROS_I18N.en = {
   connectingWifi: "Connecting WiFi...",
   wifiSavedWaitingIp: "WiFi saved. Waiting for the router to assign an IP.",
   wifiConnectFailed: "WiFi connection failed",
+  wifiConnectFailedReason: "Router connection failed. WiFi reason:",
+  wifiConnectTimedOut: "Timed out waiting for a LAN IP. Check the password and router signal.",
   firstRunSetup: "First Run Setup",
   connectTigerosToWifi: "Connect TigerOS to WiFi",
   onboardingIntro: "Select your store WiFi network. TigerOS will keep this setup page open and show the LAN IP after it connects.",

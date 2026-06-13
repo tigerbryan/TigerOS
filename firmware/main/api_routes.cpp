@@ -252,6 +252,8 @@ esp_err_t status_handler(httpd_req_t* req) {
     cJSON_AddStringToObject(root, "wifi_mode", status.wifi_mode.c_str());
     cJSON_AddStringToObject(root, "ip_address", status.ip_address.c_str());
     cJSON_AddBoolToObject(root, "wifi_connected", status.wifi_connected);
+    cJSON_AddNumberToObject(root, "wifi_disconnect_count", status.wifi_disconnect_count);
+    cJSON_AddNumberToObject(root, "wifi_last_disconnect_reason", status.wifi_last_disconnect_reason);
     cJSON_AddNumberToObject(root, "uptime_seconds", static_cast<double>(status.uptime_seconds));
     cJSON_AddNumberToObject(root, "free_heap", status.free_heap);
     cJSON_AddStringToObject(root, "hardware_model", status.hardware_model.c_str());

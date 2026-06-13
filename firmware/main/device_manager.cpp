@@ -27,6 +27,8 @@ DeviceStatus DeviceManager::status() {
     out.wifi_ssid = wifi.ssid;
     out.ap_ssid = wifi.ap_ssid;
     out.ip_address = wifi.ip_address;
+    out.wifi_disconnect_count = wifi.disconnect_count;
+    out.wifi_last_disconnect_reason = wifi.last_disconnect_reason;
     out.wifi_mode = wifi.connected ? "station" : (wifi.ap_active ? "setup_ap" : "disconnected");
     out.hardware_model = "esp32-s3";
     esp_chip_info_t chip_info;

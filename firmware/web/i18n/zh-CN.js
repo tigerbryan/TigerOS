@@ -26,6 +26,8 @@ window.TIGEROS_I18N["zh-CN"] = {
   connectingWifi: "正在连接 WiFi...",
   wifiSavedWaitingIp: "WiFi 已保存，正在等待路由器分配 IP。",
   wifiConnectFailed: "WiFi 连接失败",
+  wifiConnectFailedReason: "连接路由器失败，WiFi 原因码：",
+  wifiConnectTimedOut: "等待局域网 IP 超时，请检查密码和路由器信号。",
   firstRunSetup: "首次设置",
   connectTigerosToWifi: "连接 TigerOS 到 WiFi",
   onboardingIntro: "选择门店 WiFi。TigerOS 会保持此设置页打开，并在联网后显示局域网 IP。",
