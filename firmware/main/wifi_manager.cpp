@@ -18,6 +18,7 @@ namespace {
 
 constexpr const char* TAG = "wifi_manager";
 constexpr int SETUP_AP_DISCONNECT_THRESHOLD = 3;
+constexpr const char* SETUP_AP_IP = "192.168.4.1";
 } // namespace
 
 esp_err_t WifiManager::init() {
@@ -104,9 +105,9 @@ esp_err_t WifiManager::start_setup_ap() {
 
     ap_active_ = true;
     if (!connected_) {
-        ip_address_ = "192.168.4.1";
+        ip_address_ = SETUP_AP_IP;
     }
-    ESP_LOGI(TAG, "Setup AP available: %s at 192.168.4.1", ap_ssid_.c_str());
+    ESP_LOGI(TAG, "Setup AP available: %s at %s", ap_ssid_.c_str(), SETUP_AP_IP);
     return ESP_OK;
 }
 
@@ -187,16 +188,24 @@ void WifiManager::handle_event(esp_event_base_t event_base, int32_t event_id, vo
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         auto* event = static_cast<wifi_event_sta_disconnected_t*>(event_data);
         connected_ = false;
-        ip_address_.clear();
+        ip_address_ = ap_active_ ? SETUP_AP_IP : "";
         last_disconnect_reason_ = event ? event->reason : 0;
         if (!station_connect_enabled_ || current_ssid_.empty()) {
             ESP_LOGW(TAG, "WiFi station disconnected while setup AP is active, reason=%d", last_disconnect_reason_);
             return;
         }
         disconnect_count_ += 1;
+        if (ap_active_) {
+            ESP_LOGW(TAG,
+                     "WiFi disconnected while setup AP is active, reason=%d; keeping setup AP stable",
+                     last_disconnect_reason_);
+            return;
+        }
         if (!ap_active_ && disconnect_count_ >= SETUP_AP_DISCONNECT_THRESHOLD) {
             ESP_LOGW(TAG, "WiFi disconnected %d times, reason=%d, starting setup AP", disconnect_count_, last_disconnect_reason_);
             ESP_ERROR_CHECK_WITHOUT_ABORT(start_setup_ap());
+            ESP_LOGW(TAG, "Station reconnect paused while setup AP is available");
+            return;
         } else {
             ESP_LOGW(TAG, "WiFi disconnected, reason=%d, reconnecting", last_disconnect_reason_);
         }
