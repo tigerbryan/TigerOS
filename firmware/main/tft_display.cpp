@@ -231,6 +231,21 @@ std::string ascii_label(const UniversalDevice& device) {
     return out;
 }
 
+std::string ascii_text(std::string value, size_t max_len) {
+    std::string out;
+    out.reserve(std::min(value.size(), max_len));
+    for (char ch : value) {
+        const auto c = static_cast<unsigned char>(ch);
+        if (c >= 0x20 && c <= 0x7E) {
+            out.push_back(ch);
+        }
+        if (out.size() >= max_len) {
+            break;
+        }
+    }
+    return out.empty() ? "-" : out;
+}
+
 } // namespace
 
 esp_err_t TftDisplay::init() {
@@ -363,13 +378,16 @@ std::string TftDisplay::build_signature() {
     auto wifi = wifi_manager().status();
     auto devices = device_registry().devices();
 
-    char head[160];
+    const std::string network_name = wifi.connected ? wifi.ssid : wifi.ap_ssid;
+    char head[256];
     // Heap moves constantly; bucket it so tiny allocator noise does not make the LCD flicker.
     const uint32_t heap_bucket = static_cast<uint32_t>(status.free_heap / 4096);
     std::snprintf(head,
                   sizeof(head),
-                  "w:%d|ip:%s|heap:%lu|count:%u",
-                  wifi.connected ? 1 : 0,
+                  "fw:%s|mode:%s|net:%s|ip:%s|heap:%lu|count:%u",
+                  status.firmware_version.c_str(),
+                  status.wifi_mode.c_str(),
+                  network_name.c_str(),
                   status.ip_address.c_str(),
                   static_cast<unsigned long>(heap_bucket),
                   static_cast<unsigned>(devices.size()));
@@ -400,25 +418,34 @@ void TftDisplay::render() {
     auto status = device_manager().status();
     auto wifi = wifi_manager().status();
     char line[96];
+    std::snprintf(line, sizeof(line), "FW %s", status.firmware_version.c_str());
+    draw_text(12, 46, line, C_MUTED, 1);
     std::snprintf(line, sizeof(line), "%s", wifi.connected ? "ONLINE" : "SETUP");
     draw_text(218, 18, line, wifi.connected ? C_GOOD : C_BAD, 2);
 
-    fill_rect(12, 82, 296, 84, C_PANEL);
+    fill_rect(12, 82, 296, 96, C_PANEL);
     std::snprintf(line, sizeof(line), "IP %s", status.ip_address.c_str());
     draw_text(24, 98, line, C_TEXT, 2);
+    const std::string network_name = status.wifi_connected ? status.wifi_ssid : status.ap_ssid;
+    std::snprintf(line,
+                  sizeof(line),
+                  "%s %s",
+                  status.wifi_connected ? "WIFI" : "AP",
+                  ascii_text(network_name, 40).c_str());
+    draw_text(24, 126, line, C_TEXT, 1);
     std::snprintf(line, sizeof(line), "HEAP %lu", static_cast<unsigned long>(status.free_heap));
-    draw_text(24, 128, line, C_MUTED, 2);
+    draw_text(24, 150, line, C_MUTED, 1);
 
     auto devices = device_registry().devices();
     int readable = 0;
     for (const auto& d : devices) {
         if (d.last_seen > 0 && !d.state_json.empty()) readable++;
     }
-    fill_rect(12, 184, 296, 48, C_PANEL_2);
+    fill_rect(12, 196, 296, 48, C_PANEL_2);
     std::snprintf(line, sizeof(line), "DEVICES %u  DATA %d", static_cast<unsigned>(devices.size()), readable);
-    draw_text(24, 200, line, C_TEXT, 2);
+    draw_text(24, 212, line, C_TEXT, 2);
 
-    int y = 250;
+    int y = 262;
     int shown = 0;
     const uint64_t now = static_cast<uint64_t>(esp_timer_get_time() / 1000000ULL);
     for (const auto& d : devices) {
