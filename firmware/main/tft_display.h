@@ -18,7 +18,6 @@ private:
     bool available_ = false;
     bool enabled_ = true;
     std::string last_signature_;
-    int64_t last_render_us_ = 0;
 
     static void task_entry(void* arg);
     void task_loop();

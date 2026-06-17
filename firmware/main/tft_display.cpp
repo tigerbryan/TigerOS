@@ -356,16 +356,11 @@ void TftDisplay::task_entry(void* arg) {
 }
 
 void TftDisplay::task_loop() {
-    constexpr int64_t kFallbackRefreshUs = 60LL * 1000LL * 1000LL;
     while (true) {
         if (enabled_ && available_) {
-            const int64_t now_us = esp_timer_get_time();
             std::string signature = build_signature();
-            const bool changed = signature != last_signature_;
-            const bool stale = last_render_us_ == 0 || now_us - last_render_us_ >= kFallbackRefreshUs;
-            if (changed || stale) {
+            if (signature != last_signature_) {
                 last_signature_ = std::move(signature);
-                last_render_us_ = now_us;
                 render();
             }
         }
@@ -380,16 +375,13 @@ std::string TftDisplay::build_signature() {
 
     const std::string network_name = wifi.connected ? wifi.ssid : wifi.ap_ssid;
     char head[256];
-    // Heap moves constantly; bucket it so tiny allocator noise does not make the LCD flicker.
-    const uint32_t heap_bucket = static_cast<uint32_t>(status.free_heap / 4096);
     std::snprintf(head,
                   sizeof(head),
-                  "fw:%s|mode:%s|net:%s|ip:%s|heap:%lu|count:%u",
+                  "fw:%s|mode:%s|net:%s|ip:%s|count:%u",
                   status.firmware_version.c_str(),
                   status.wifi_mode.c_str(),
                   network_name.c_str(),
                   status.ip_address.c_str(),
-                  static_cast<unsigned long>(heap_bucket),
                   static_cast<unsigned>(devices.size()));
 
     std::string signature(head);
@@ -433,7 +425,10 @@ void TftDisplay::render() {
                   status.wifi_connected ? "WIFI" : "AP",
                   ascii_text(network_name, 40).c_str());
     draw_text(24, 126, line, C_TEXT, 1);
-    std::snprintf(line, sizeof(line), "HEAP %lu", static_cast<unsigned long>(status.free_heap));
+    std::snprintf(line,
+                  sizeof(line),
+                  "MODE %s",
+                  status.wifi_connected ? "STATION" : (!status.ap_ssid.empty() ? "SETUP AP" : "OFFLINE"));
     draw_text(24, 150, line, C_MUTED, 1);
 
     auto devices = device_registry().devices();
